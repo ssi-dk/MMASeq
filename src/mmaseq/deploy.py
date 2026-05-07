@@ -5,6 +5,7 @@ import subprocess
 import sys
 import collections
 import ftplib
+import shutil
 
 logger = pkg_logging.initiate_log("MMAdeploy")
 
@@ -96,6 +97,25 @@ def parse_deploy():
 
 
     return parser.parse_args()
+
+
+def deploy_spe_configs(deploy_dir):
+    logger.trace(("deploy_spe_configs(\n "
+        f"deploy_dir = {deploy_dir}"
+        ")"))
+
+    spe_configs_dir = deploy_dir / "spe_configs"
+    
+    logger.trace("Checking whether config dir allready exists")
+    if not spe_configs_dir.exists():
+        logger.trace(f"Couldn't locate {spe_configs_dir}, clonig from {SPE_CONFIGS}")
+        shutil.copytree(SPE_CONFIGS, spe_configs_dir)
+        #SPE_CONFIGS.copy(spe_configs_dir) # Use from python 3.14+ and remove import shutils
+        logger.info("Copied species configs directory from installation folder into deployment dir.")
+    else:
+        logger.info("Species configuration directory allready exists. Skipping!")
+
+    return None
 
 
 def extract_hosts(urls):
@@ -220,6 +240,8 @@ def deploy_dataset(update, max_retries):
         f"update: {update}\n - "
         f"max_retries: {max_retries})"))
 
+
+
     with open(URL_FILE, "r") as url_file:
         urls = url_file.read().splitlines()
 
@@ -247,6 +269,8 @@ def deploy_dataset(update, max_retries):
 
         disconnect_ftp(ftp)
 
+    return None
+
 
 def deploy(args):
 
@@ -255,6 +279,9 @@ def deploy(args):
     retries = args.retries
     threads = args.threads
     verbosity = args.verbosity
+
+    logger.info("Inspecting species configuration directory")
+    deploy_spe_configs(deploy_dir)
 
     logger.info(f"Inspecting the deployment dataset")
     deploy_dataset(update, retries)
