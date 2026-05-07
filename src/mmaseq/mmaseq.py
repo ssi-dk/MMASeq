@@ -8,7 +8,7 @@ import re
 import pandas as pd
 from datetime import datetime
 import yaml
-from .utils import helper_functions
+from mmaseq.utils import pkg_logging, utils, config_handlers, output_handlers
 import subprocess
 
 # Initiate logging
@@ -318,14 +318,14 @@ def link_assemblies(samplesheet_file,
 
 
     logger.trace(f"Importing sample configs from {config_dir}")
-    sample_configs = helper_functions.determine_sample_configs(samplesheet, 
+    sample_configs = config_handlers.determine_sample_configs(samplesheet, 
                                                                config_dir,
                                                                ignore_assemblies)
 
     # Iterating over sample configurations
     for sample, configs in sample_configs.items():
 
-        assembly_source = helper_functions.inspect_samplesheet_assembly_path(sample, samplesheet)
+        assembly_source = config_handlers.inspect_samplesheet_assembly_path(sample, samplesheet)
         assembly_path = assembly_source.get(sample)
 
         # Attempt to locate relative paths from assembly listed in sheet
