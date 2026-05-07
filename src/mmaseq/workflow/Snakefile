@@ -1,5 +1,5 @@
 from mmaseq.utils.paths import *
-from mmaseq.utils import helper_functions, pkg_logging
+from mmaseq.utils import pkg_logging, utils, config_handlers, output_handlers
 from pathlib import Path
 import pandas as pd
 
@@ -42,14 +42,14 @@ samplesheet = pd.read_csv(samplesheet_path,
                           sep='\t').set_index("sample_name")
 
 logger.trace("Reading result files catalogue")
-results_catalogue = helper_functions.read_results_catalogue(CATALOGUE_PATH)
+results_catalogue = utils.read_results_catalogue(CATALOGUE_PATH)
 
 logger.trace("Defining sample specific configurations")
-sample_configs = helper_functions.determine_sample_configs(samplesheet, 
+sample_configs = config_handlers.determine_sample_configs(samplesheet, 
                                                            SPE_CONFIGS, 
                                                            ignore_assemblies)
 
-all_result_files = helper_functions.define_all_result_files(outdir, 
+all_result_files = output_handlers.define_all_result_files(outdir, 
                                                             sample_configs, 
                                                             results_catalogue)
 
@@ -71,7 +71,7 @@ rule all:
     output:
         all = "%s/results_long.tsv" %outdir
     run:
-        all_results_long = helper_functions.generate_long_results(all_result_files)
+        all_results_long = output_handlers.generate_long_results(all_result_files)
         all_results_long.to_csv(output.all, sep = "\t")
 
 

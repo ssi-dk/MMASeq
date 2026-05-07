@@ -1,130 +1,28 @@
+#!/usr/bin/env python3
+
 import pandas as pd
-import os
-import yaml
-from typing import Dict, Tuple, Set, List
-import warnings
-import sys
-import pathlib
 from pathlib import Path
 from collections import defaultdict
-import itertools
 
-def read_results_catalogue(results_catalogue_path):
-    with open(results_catalogue_path, "r") as catalogue_file:
-        try:
-            results_catalogue = yaml.safe_load(catalogue_file)
-        except:
-            print("read_results_catalogue(results_catalogue_path): LAZY DEVELOPPERS... Fill out except!!!")
-            results_catalogue = yaml.safe_load(results_catalogue_path)
-    
-    return(results_catalogue)
-
-
-def inspect_samplesheet_assembly_path(sample, samplesheet):
-    # Reading assembly entry from samplesheet
-    assembly_from_sheet = samplesheet.at[sample, "assembly"]
-    
-    # Handle if assembly is determined as NA
-    assembly_path = Path(assembly_from_sheet)
-    
-    if assembly_path.exists(follow_symlinks = True):
-        path = {sample: assembly_path}
-    elif pd.isna(assembly_from_sheet):
-        logger.trace(f"No assembly provided for {sample}")
-        path = {sample: None}
-    else:
-        logger.warning(f"Failed to find {assembly_from_sheet}")
-        path = {sample: False}
-
-    return path
-
-
-def determine_sample_configs(samplesheet, config_dir, ignore_assemblies):
-    # Create a dict for sample names and dict files
-    sample_configs = {}
-    assemblers_unknown = []
-
-    # Iterate samplesheet and pair samples with configurations
-    for sample, cfg in zip(samplesheet.index, samplesheet["config"]):
-
-        # Determine assemlby paths
-        assembly_path = inspect_samplesheet_assembly_path(sample, samplesheet)
-
-        # Add sample assembly to list of unknown assembler, if assembly exists
-        if isinstance(assembly_path.get(sample), Path) and not ignore_assemblies:
-            assemblers_unknown.append(sample)
-
-        # Deduce configuration file from samplesheet
-        cfg_path = f"{config_dir}/{cfg}"
-
-        # Handle missing configuration file
-        if not os.path.isfile(cfg_path):
-            print(f"Warning: Config file specified in samplesheet {cfg} does not exist in {config_dir}!")
-            cfg_path = None
-
-            default_path = f"{config_dir}/default.yaml"
-
-            # Ensure that default file exists and use it
-            if os.path.exists(default_path):
-                    print("Using default.yaml instead")
-                    cfg_path = default_path
-            else:
-                print(f"Warning: Default configuration file is missing, please recreate it to enable default analysis: {default_path}")
-
-
-        # Read sample configrations
-        if cfg_path is not None:
-            #print(f"Configuration file {cfg_path} found for {sample}") # As log_debug
-            with open(cfg_path, "r") as config_file:
-                sample_configs[sample] = yaml.safe_load(config_file)
-
-        # Warn user of no configuration is included
-        else:
-            print(f"No configuration file was specified for sample {sample}.\nSkipping!")
-    
-    # Ensure that there are indeed sample configurations
-    if len(sample_configs) == 0:
-        sys.exit("No sample configuration files found. Ensure that the `config` column of the samplesheet is correctly filled.")
-
-    # Chanfing assembler values for samples with unknown assemblers
-    for sample in assemblers_unknown:
-        sample_cfg = sample_configs.get(sample)
-
-        for mod, opts in sample_cfg.items():
-            if not isinstance(opts, dict):
-                continue
-            elif "assemblers" in opts.keys():
-                sample_configs[sample][mod]["assemblers"] = ["UnkAssembly"]
-
-    return(sample_configs)
-
-
-def deconvolute_path(template, configs):
-    if not isinstance(configs, dict):
-        return [template]
-
-    # Convert multiple arguments into exhaustive parallel lists
-    options = list(configs.keys())
-    arguments = [arg if isinstance(arg, (list, tuple)) else [arg] for arg in (configs[k] for k in options)]
-
-    exhaustive_templates = list()
-    # Iteratively generate exhaustive dicts for handling multiple option/arugment relationships
-    for combo in itertools.product(*arguments):
-        paired = dict(zip(options, combo))
-        # Laizily map option/arguments where applicatble into expected result file names
-        if len(configs) > 0:
-            fname = template.format(**paired)
-            exhaustive_templates.append(fname)
-                
-        # Handle missing options
-        else:
-            exhaustive_templates.append(template)
-
-    return exhaustive_templates
+# Import from utils
+from .utils import deconvolute_path, read_results_catalogue
 
 
 def define_module_results_file(outdir, sample, module, results_catalogue, sample_configs):
+    """
+    Defines the expected result file paths for a specific module and sample.
 
+    Args:
+        outdir (str): Output directory path.
+        sample (str): Sample name.
+        module (str): Module name.
+        results_catalogue (dict): Dictionary containing result file templates for each module.
+        sample_configs (dict): Dictionary containing configurations for each sample.
+
+    Returns:
+        list: List of Path objects representing the expected result file paths.
+    """
+    # Define prefix for result file paths
     prefix = Path(f"{outdir}/{sample}/{module}").expanduser()
 
     module_result_files = list()
@@ -151,9 +49,18 @@ def define_module_results_file(outdir, sample, module, results_catalogue, sample
     return module_result_files
 
 
-
 def define_all_result_files(outdir, sample_configs, results_catalogue):
+    """
+    Defines all expected result file paths for all samples and modules.
 
+    Args:
+        outdir (str): Output directory path.
+        sample_configs (dict): Dictionary containing configurations for each sample.
+        results_catalogue (dict): Dictionary containing result file templates for each module.
+
+    Returns:
+        defaultdict: Nested dictionary with sample -> module -> list of Path objects.
+    """
     # Define carrier object
     all_result_files = defaultdict(dict)
 
@@ -189,7 +96,18 @@ def define_all_result_files(outdir, sample_configs, results_catalogue):
 
 
 def unpivot_results(sample, module, file, results):
+    """
+    Converts a wide-format results DataFrame to a long-format DataFrame.
 
+    Args:
+        sample (str): Sample name.
+        module (str): Module name.
+        file (Path): Path to the results file.
+        results (pd.DataFrame): Wide-format results DataFrame.
+
+    Returns:
+        pd.DataFrame: Long-format DataFrame with columns Sample, Module, File, Row, Column, Value.
+    """
     # Convert index to row number column starting from row 1
     results.index += 1
     results = results.reset_index(names = "Row")
@@ -212,6 +130,15 @@ def unpivot_results(sample, module, file, results):
 
 
 def generate_long_results(all_result_files):
+    """
+    Generates a concatenated long-format DataFrame from all result files.
+
+    Args:
+        all_result_files (defaultdict): Nested dictionary with sample -> module -> list of Path objects.
+
+    Returns:
+        pd.DataFrame: Concatenated long-format DataFrame from all result files.
+    """
     all_sample_results = list()
 
     for sample, modules in all_result_files.items():
@@ -239,7 +166,19 @@ def generate_long_results(all_result_files):
 
 
 def determine_rule_output(outdir, sample, module, results_catalogue, sample_configs):
+    """
+    Determines the output paths for a rule based on the results catalogue and configurations.
 
+    Args:
+        outdir (str): Output directory path.
+        sample (str): Sample name.
+        module (str): Module name.
+        results_catalogue (dict): Dictionary containing result file templates for each module.
+        sample_configs (dict): Dictionary containing configurations for each sample.
+
+    Returns:
+        list: List of output path strings for the rule.
+    """
     result_strings = results_catalogue.get(module)
     if not isinstance(result_strings, (list, tuple)):
         result_strings = [result_strings]
