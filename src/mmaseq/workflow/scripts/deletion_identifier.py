@@ -135,8 +135,7 @@ def match_gene_bcf(
     gene_to_contig: Dict[str, str] = {}
 
     print(
-        f"[INFO] Matching {len(genes)} genes to {len(contig_names)} contigs "
-        "in BCF header."
+        f"[INFO] Matching {len(genes)} genes to {len(contig_names)} contigs in BCF header."
     )
     for gene in genes:
         pattern = re.compile(re.escape(gene), flags=re.IGNORECASE)
@@ -309,7 +308,7 @@ def assign_best_canonical_for_call(
     Optional[float],
     Optional[float],
     Optional[bool],
-]:  # noqa: E501
+]:
     """
     Given 'call' deletion variants for a single gene and that gene's
     metafile subset (with del_start, del_end, del_type, gt_IMF, gt_IDV, gt_DP),
@@ -400,9 +399,8 @@ def assign_best_canonical_for_call(
     }
 
     print(
-        f"[INFO] Assigning best canonical deletion from {len(variants)} "
-        f"call variants and {len(meta_gene)} canonical windows "
-        f"with min_frac={min_frac}."
+        f"[INFO] Assigning best canonical deletion from {len(variants)} call variants "
+        f"and {len(meta_gene)} canonical windows with min_frac={min_frac}."
     )
 
     for rec in variants:
@@ -416,8 +414,9 @@ def assign_best_canonical_for_call(
         DP = _get_info_int(rec, "DP")
 
         print(
-                f"[DEBUG] Considering call deletion {obs_start}-{obs_end} "
-                f"(len={obs_len}) with IMF={IMF}, IDV={IDV}, DP={DP}"
+            f"[DEBUG] Considering call deletion {obs_start}-{obs_end} (len={obs_len}) "
+            f"with IMF={IMF}, IDV={IDV}, DP={DP}"
+        )
 
         for _, r in meta_gene.iterrows():
             exp_start = int(r["del_start"])
@@ -455,8 +454,7 @@ def assign_best_canonical_for_call(
                 f"-> canonical {exp_start}-{exp_end} len={exp_len} (type={exp_type}), "
                 f"overlap={overlap}, frac_expected={frac_expected:.3f}, "
                 f"frac_observed={frac_observed:.3f}, len_diff={len_diff}, "
-                f"passes_thresholds={passes_thresholds}, "
-                f"score_tuple={score_tuple}"
+                f"passes_thresholds={passes_thresholds}, score_tuple={score_tuple}"
             )
 
             if passes_thresholds:
@@ -552,7 +550,7 @@ def assign_best_canonical_for_mpileup(
     Optional[int],
     Optional[float],
     Optional[float],
-]:  # noqa: E501
+]:
     """
     Given mpileup deletion variants for a single gene and that gene's
     metafile subset (with del_start, del_end, del_type), pick the best
@@ -575,9 +573,8 @@ def assign_best_canonical_for_mpileup(
     best_score_tuple: Optional[Tuple[float, float, int, int]] = None
 
     print(
-        f"[INFO] Assigning best canonical deletion from {len(variants)} "
-        f"mpileup variants and {len(meta_gene)} canonical windows "
-        f"with min_frac={min_frac}."
+        f"[INFO] Assigning best canonical deletion from {len(variants)} mpileup variants "
+        f"and {len(meta_gene)} canonical windows with min_frac={min_frac}."
     )
 
     for rec in variants:
@@ -635,9 +632,8 @@ def assign_best_canonical_for_mpileup(
                 best_frac_expected = frac_expected
                 best_frac_observed = frac_observed
                 print(
-                    f"[INFO] New best canonical candidate (mpileup): "
-                    f"type={best_type}, len_diff={best_len_diff}, "
-                    f"score_tuple={best_score_tuple}"
+                    f"[INFO] New best canonical candidate (mpileup): type={best_type}, "
+                    f"len_diff={best_len_diff}, score_tuple={best_score_tuple}"
                 )
 
     if best_type is None:
@@ -708,7 +704,7 @@ def assign_best_canonical_for_assembly(
     Optional[int],
     Optional[float],
     Optional[float],
-]:  # noqa: E501
+]:
     """
     Canonical mapping for deletions derived from SAM CIGAR strings ("assembly").
 
@@ -735,9 +731,8 @@ def assign_best_canonical_for_assembly(
     best_score_tuple: Optional[Tuple[float, float, int, int]] = None
 
     print(
-        f"[INFO] Assigning best canonical deletion from {len(del_spans)} "
-        f"SAM/CIGAR deletions and {len(meta_gene)} canonical windows "
-        f"with min_frac={min_frac}."
+        f"[INFO] Assigning best canonical deletion from {len(del_spans)} SAM/CIGAR deletions "
+        f"and {len(meta_gene)} canonical windows with min_frac={min_frac}."
     )
 
     for obs_start, obs_end, obs_len in del_spans:
@@ -790,8 +785,7 @@ def assign_best_canonical_for_assembly(
                 best_frac_observed = frac_observed
                 print(
                     f"[INFO] New best canonical candidate (SAM): type={best_type}, "
-                    f"len_diff={best_len_diff}, "
-                    f"score_tuple={best_score_tuple}"
+                    f"len_diff={best_len_diff}, score_tuple={best_score_tuple}"
                 )
 
     if best_type is None:
@@ -880,7 +874,7 @@ def run(
     deletion_region_buffer: int = 5,
     overlap_fraction: float = 0.6,
     sam_path: Optional[str] = None,
-) -> None:  # noqa: E501
+) -> None:
     # Step 1: load_deletion_metafile
     print(
         "\n# ========================= Step 1: load_deletion_metafile =========================\n"
@@ -895,8 +889,7 @@ def run(
 
     if org_meta.empty:
         print(
-            f"[WARN] No rows for organism '{organism}' in deletion metafile. "
-            "Writing empty output."
+            f"[WARN] No rows for organism '{organism}' in deletion metafile. Writing empty output."
         )
         out_df = pd.DataFrame(
             columns=[
@@ -991,8 +984,7 @@ def run(
         chosen_frac_expected: Optional[float] = None
         chosen_frac_observed: Optional[float] = None
         chosen_category: Optional[str] = None  # "1".."7"
-        # "call", "mpileup", "consensus", "assembly"
-        chosen_source: Optional[str] = None
+        chosen_source: Optional[str] = None  # "call", "mpileup", "consensus", "assembly"
 
         classified_deletion_variant: Optional[int] = None   # from call/mpileup
         classified_consensus_variant: Optional[int] = None  # from consensus N%
@@ -1027,8 +1019,8 @@ def run(
             gene_max_end = int(meta_g["del_end"].max())
 
             print(
-                f"[INFO] Call BCF: extracting candidate deletions spanning "
-                f"all windows for gene '{gene}' ({gene_min_start}-{gene_max_end})"
+                f"[INFO] Call BCF: extracting candidate deletions spanning all windows for gene '{gene}' "
+                f"({gene_min_start}-{gene_max_end})"
             )
 
             call_deletion_variants = extract_deletion_variants_in_region(
@@ -1092,8 +1084,7 @@ def run(
                 )
         else:
             print(
-                f"[INFO] Gene '{gene}' has no contig in call BCF, "
-                "skipping call-based classification."
+                f"[INFO] Gene '{gene}' has no contig in call BCF, skipping call-based classification."
             )
 
         # ---------------------- MPILEUP (categories 4–5, fallback) ----------------------
@@ -1111,8 +1102,8 @@ def run(
             gene_max_end = int(meta_g["del_end"].max())
 
             print(
-                f"[INFO] Mpileup BCF: extracting candidate deletions spanning "
-                f"all windows for gene '{gene}' ({gene_min_start}-{gene_max_end})"
+                f"[INFO] Mpileup BCF: extracting candidate deletions spanning all windows for gene '{gene}' "
+                f"({gene_min_start}-{gene_max_end})"
             )
 
             mpileup_deletion_variants = extract_deletion_variants_in_region(
@@ -1163,18 +1154,16 @@ def run(
                 classified_deletion_variant = mp_type
             else:
                 print(
-                    f"[INFO] Mpileup BCF: no canonical deletion assigned "
-                    f"for gene '{gene}'."
+                    f"[INFO] Mpileup BCF: no canonical deletion assigned for gene '{gene}'."
                 )
         elif chosen_category is not None:
             print(
-                f"[INFO] Gene '{gene}' already has call-based "
-                f"category {chosen_category}; mpileup canonical mapping skipped."
+                f"[INFO] Gene '{gene}' already has call-based category {chosen_category}; "
+                f"mpileup canonical mapping skipped."
             )
         else:
             print(
-                f"[INFO] Gene '{gene}' has no contig mapping; "
-                "mpileup classification skipped."
+                f"[INFO] Gene '{gene}' has no contig mapping; mpileup classification skipped."
             )
 
         # Decide whether to skip consensus + assembly entirely
@@ -1222,8 +1211,7 @@ def run(
                             )
                 elif contig_name == "-":
                     print(
-                        f"[INFO] No contig for gene '{gene}' in FASTA; "
-                        "consensus_N_pct left as None."
+                        f"[INFO] No contig for gene '{gene}' in FASTA; consensus_N_pct left as None."
                     )
                 else:
                     print(
@@ -1805,13 +1793,13 @@ def main() -> None:
         "--output",
         required=True,
         help=(
-            "Output TSV path (species, contig_name, gene, expected_start, "
-            "expected_end, expected_variant, deletion_start, deletion_end, "
-            "deletion_length, assembly_deletion_start, assembly_deletion_end, "
-            "assembly_deletion_length, expected_overlap_pct, "
-            "observed_overlap_pct, assembly_expected_overlap_pct, "
-            "assembly_observed_overlap_pct, consensus_N_pct, "
-            "consensus_N_length, classified_deletion_variant, "
+            "Output TSV path "
+            "(species, contig_name, gene, expected_start, expected_end, "
+            "expected_variant, deletion_start, deletion_end, deletion_length, "
+            "assembly_deletion_start, assembly_deletion_end, assembly_deletion_length, "
+            "expected_overlap_pct, observed_overlap_pct, "
+            "assembly_expected_overlap_pct, assembly_observed_overlap_pct, "
+            "consensus_N_pct, consensus_N_length, classified_deletion_variant, "
             "classified_consensus_variant, classified_assembly_variant, "
             "category, support_source)."
         ),
