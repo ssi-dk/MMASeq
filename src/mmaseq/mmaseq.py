@@ -250,16 +250,19 @@ def create_config(samplesheet_file,
                   ignore_assemblies,
                   force,
                   deploy_dir,
+                  spe_configs_dir,
                   verbosity
                   ):
 
-    logger.trace(("create_config(\n - "
-                  f"samplesheet_file: {samplesheet_file}\n - "
-                  f"outdir: {outdir}\n - "
-                  f"ignore_assemblies: {ignore_assemblies}\n - "
-                  f"force: {force}\n - "
-                  f"deploy_dir: {deploy_dir}\n - "
-                  f"verbosity: {verbosity}"))
+    logger.trace(("create_config(\n"
+                  f"samplesheet_file = {samplesheet_file}\n"
+                  f"outdir = {outdir}\n"
+                  f"ignore_assemblies = {ignore_assemblies}\n"
+                  f"force = {force}\n"
+                  f"deploy_dir = {deploy_dir}\n"
+                  f"spe_configs_dir = {spe_configs_dir}\n"
+                  f"verbosity: {verbosity}"
+                  ")"))
 
     # Determine config file
     outdir = outdir.resolve()
@@ -283,6 +286,7 @@ def create_config(samplesheet_file,
     config = {
         "samplesheet": str(samplesheet_file),
         "deploy_dir": str(deploy_dir),
+        "spe_configs_dir": str(spe_configs_dir),
         "ignore_assemblies": ignore_assemblies,
         "outdir": str(outdir),
         "verbosity": int(verbosity)
@@ -459,15 +463,6 @@ def mmaseq(args):
         samplesheet_file = resolve_samplesheet_paths(samplesheet_file, outdir)
         logger.info("Resolved the file paths stated in the samplesheet")
 
-    logger.debug("Creating pipeline configuration file")
-    config_file = create_config(samplesheet_file, 
-                           outdir,
-                           ignore_assemblies,
-                           force,
-                           deploy_dir,
-                           args.verbosity
-                           )
-
     spe_configs_dir = deploy_dir / "spe_configs"
 
     if not spe_configs_dir.exists():
@@ -480,6 +475,16 @@ def mmaseq(args):
         spe_configs_dir = SPE_CONFIGS
     else:
         logger.info("Species configurations folder successfully detected.")
+
+    logger.debug("Creating pipeline configuration file")
+    config_file = create_config(samplesheet_file, 
+                           outdir,
+                           ignore_assemblies,
+                           force,
+                           deploy_dir,
+                           spe_configs_dir,
+                           args.verbosity
+                           )
 
     if ignore_assemblies or force:
         logger.info("Assemblies in samplesheet will not replace "
