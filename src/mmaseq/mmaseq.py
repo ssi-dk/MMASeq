@@ -1,6 +1,5 @@
-#!/usr/bin/env python
-from .utils import pkg_logging
-from .utils.paths import *
+#!/usr/bin/env python3
+
 import argparse
 from pathlib import Path
 import sys
@@ -8,11 +7,12 @@ import re
 import pandas as pd
 from datetime import datetime
 import yaml
-from mmaseq.utils import pkg_logging, utils, config_handlers, output_handlers
+from mmaseq.utils import logging_setup, sample_config
+from .utils.PATH import *
 import subprocess
 
 # Initiate logging
-logger = pkg_logging.initiate_log("MMAseq")
+logger = logging_setup.initiate_log("MMAseq")
 
 
 def parse_mmaseq():
@@ -20,167 +20,152 @@ def parse_mmaseq():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=(
-        f"Mixed Microbial Analysis on Sequencing data\n"
-        f"This is the main module used for executing the MMAseq pipeline.\n"
-        f"MMAseq is split into the following three executable commands:\n"
-        f"    * mmacreate - Create input samplesheets for MMAseq\n"
-        f"    * mmadeploy - Install environment and create databases\n"
-        f"    * mmaseq - Execute the pipeline.\n"
+            "Mixed Microbial Analysis on Sequencing data\n"
+            "This is the main module used for executing the MMAseq pipeline.\n"
+            "MMAseq is split into the following three executable commands:\n"
+            "    * mmacreate - Create input samplesheets for MMAseq\n"
+            "    * mmadeploy - Install environment and create databases\n"
+            "    * mmaseq - Execute the pipeline.\n"
         )
-        
     )
 
     parser.add_argument(
         "--samplesheet",
-        dest = "samplesheet_file",
-        required = True,
-        help = 
-           """
-            Path to samplesheet TSV used by the pipeline. 
-            If the samplesheet doesn't exist, `indir` must be 
-            specified to create one.
-            """
+        dest="samplesheet_file",
+        required=True,
+        help=(
+            "Path to samplesheet TSV used by the pipeline. "
+            "If the samplesheet doesn't exist, `indir` must be "
+            "specified to create one."
+        )
     )
     
 
     parser.add_argument(
         "--deploy_dir",
-        dest = "deploy_dir",
-        default = PKG_DIR / "Deploy",
-        help = 
-            f"""
-            Directory used to deploy virtual environment and databases 
-            used during pipeline execution. To reinstall environments 
-            and/or databases, remove the `conda/` and/or the `Databases/` 
-            folders in the deployment directory. (Default: %(default)s)
-            """
+        dest="deploy_dir",
+        default=PKG_DIR / "Deploy",
+        help=(
+            "Directory used to deploy virtual environment and databases "
+            "used during pipeline execution. To reinstall environments "
+            "and/or databases, remove the `conda/` and/or the `Databases/` "
+            "folders in the deployment directory. (Default: %(default)s)"
+        )
     )
 
     parser.add_argument(
         "--outdir",
-        dest = "outdir",
-        required = True,
-        help = 
-            """
-            Directory used for storing analysis results.
-            """
+        dest="outdir",
+        required=True,
+        help="Directory used for storing analysis results."
     )
 
     parser.add_argument(
         "--config",
-        dest = "config",
-        default = PKG_CONFIGS / "config.yaml",
-        help = 
-            f"""
-            Configuration file location. (Default: %(default)s)
-            """
+        dest="config",
+        default=PKG_CONFIGS / "config.yaml",
+        help="Configuration file location. (Default: %(default)s)"
     )
 
     parser.add_argument(
         "--threads",
-        dest = "threads",
-        default = 4,
-        help = 
-            f"""
-            Amount of threads (cores) to dedicate for executing the pipeline. 
-            (Default: %(default)s)
-            """
+        dest="threads",
+        default=4,
+        help=(
+            "Amount of threads (cores) to dedicate for executing the pipeline. "
+            "(Default: %(default)s)"
+        )
     )
 
     parser.add_argument(
         "--resolve",
-        dest = "resolve",
-        action = "store_true",
-        help = 
-            f"""
-            Resolves absolute paths from samplesheet columns, will 
-            overwrite samplesheet. (Default: %(default)s)
-            """
+        dest="resolve",
+        action="store_true",
+        help=(
+            "Resolves absolute paths from samplesheet columns, will "
+            "overwrite samplesheet. (Default: %(default)s)"
+        )
     )
 
     parser.add_argument(
         "--force",
-        dest = "force",
-        action = "store_true",
-        help = 
-            """
-            Force running all rules. (Default: %(default)s) 
-            This will cause all necessary rules for a given run to be executed, 
-            which e.g. run assemblies despite preexisting ones existing.
-            Mostly useful for forcing deployment, or rerunning a suspicious batch.
-            """
+        dest="force",
+        action="store_true",
+        help=(
+            "Force running all rules. (Default: %(default)s) "
+            "This will cause all necessary rules for a given run to be executed, "
+            "which e.g. run assemblies despite preexisting ones existing. "
+            "Mostly useful for forcing deployment, or rerunning a suspicious batch."
+        )
     )
 
     parser.add_argument(
         "--ignore_assemblies",
-        dest = "ignore_assemblies",
-        action = "store_true",
-        help = 
-            """
-            Avoid creating symbolic links of the assemblies into the 
-            pipeline output directory. (Default: %(default)s) 
-            If this is not specified, symbolic links will be created 
-            to the output directory, hence avoiding assembly steps in the 
-            pipeline. Use this option to enforce the pipeline to create 
-            assemblies (Will take extra time) rather than relying on those 
-            specified in the samplesheet.
-            """
+        dest="ignore_assemblies",
+        action="store_true",
+        help=(
+            "Avoid creating symbolic links of the assemblies into the "
+            "pipeline output directory. (Default: %(default)s) "
+            "If this is not specified, symbolic links will be created "
+            "to the output directory, hence avoiding assembly steps in the "
+            "pipeline. Use this option to enforce the pipeline to create "
+            "assemblies (Will take extra time) rather than relying on those "
+            "specified in the samplesheet."
+        )
     )
 
     parser.add_argument(
         "--verbosity",
-        dest = "verbosity",
-        type = int,
-        choices = [0, 1, 2],
-        default = 0,
-        help = 
-            """
-            Adjust the verbosity (Default: %(default)s); 
-            0: Minimal messages, 
-            1: Debug messages, 
-            2: Trace messages (development only)
-            """
+        dest="verbosity",
+        type=int,
+        choices=[0, 1, 2],
+        default=0,
+        help=(
+            "Adjust the verbosity (Default: %(default)s); "
+            "0: Minimal messages, 1: Debug messages, "
+            "2: Trace messages (development only)"
+        )
     )
 
     parser.add_argument(
         "--logfile",
-        dest = "logfile",
-        type = str,
-        default = None,
-        help = 
-            f"""
-            If provided, will redirect log messages from STDOUT to logfile. (Default: %(default)s) 
-            Will be ignored if logfile parent folder doesn't exists.
-            """
+        dest="logfile",
+        type=str,
+        default=None,
+        help=(
+            "If provided, will redirect log messages from STDOUT to logfile. "
+            "(Default: %(default)s) Will be ignored if logfile parent folder "
+            "doesn't exist."
+        )
     )
 
     return parser.parse_args()
 
 
 def resolve_path(path, samplesheet_file):
-    logger.trace((
-                  "resolve_path(\n - "
-                  f"path: {path}\n - "
-                  f"samplesheet_file: {samplesheet_file})"))
+    logger.trace(
+        f"resolve_path(\n - path: {path}\n - "
+        f"samplesheet_file: {samplesheet_file})"
+    )
 
     # Determine possible file paths
     path_absolute = path.is_absolute()
     path_from_cwd = CWD / path
     path_from_samplesheet_dir = samplesheet_file.resolve().parent / path
 
-    # Hierichically look through potential file paths
-    if path_absolute & path.exists():
+    # Hierarchically look through potential file paths
+    if path_absolute and path.exists():
         absolute = path
         logger.trace(
             f"Path is absolute, no resolving needed:\n - {absolute}"
         )
-    elif (not path_absolute) & path_from_cwd.exists():
+    elif not path_absolute and path_from_cwd.exists():
         absolute = path_from_cwd.resolve()
-        logger.trace((
+        logger.trace(
             f"Path is not absolute, but found relative to current location:"
             f"\n - {absolute}"
-        ))
-    elif (not path_absolute) & path_from_samplesheet_dir.exists():
+        )
+    elif not path_absolute and path_from_samplesheet_dir.exists():
         absolute = path_from_samplesheet_dir.resolve()
         logger.trace((
             f"Path is not absolute, but found relative to samplesheet:"
@@ -189,11 +174,11 @@ def resolve_path(path, samplesheet_file):
 
     else:
         # Abort if file path was unsolvable
-        logger.error((
+        logger.error(
             f"Unable to resolve sample path: {path}.\n"
             f"- Resolve the paths in your samplesheet {samplesheet_file} "
             "and try again.\nAborting!"
-        ))
+        )
         sys.exit(1)
 
     return absolute
@@ -205,10 +190,10 @@ def resolve_samplesheet_paths(samplesheet_file, outdir):
     into absolute paths using resolve_path().
     This guarantees that Snakemake always receives valid paths.
     """
-    logger.trace((
-            "resolve_samplesheet_paths(\n - "
-            f"samplesheet_file: {samplesheet_file}\n - "
-            f"outdir: {outdir})"))
+    logger.trace(
+        f"resolve_samplesheet_paths(\n - samplesheet_file: {samplesheet_file}"
+        f"\n - outdir: {outdir})"
+    )
 
     def fix(path):
         # Ensure that path is specified
@@ -220,7 +205,7 @@ def resolve_samplesheet_paths(samplesheet_file, outdir):
         return path
 
 
-    samplesheet = pd.read_csv(samplesheet_file, sep="\t").copy() ## why copy?
+    samplesheet = pd.read_csv(samplesheet_file, sep="\t").copy()  # why copy?
 
 
     # Resolve read and assembly file paths
@@ -228,38 +213,39 @@ def resolve_samplesheet_paths(samplesheet_file, outdir):
     samplesheet["read2"] = samplesheet["read2"].apply(fix)
     samplesheet["assembly"] = samplesheet["assembly"].apply(fix)
 
-    # Write samplesheet with resolved paths"
+    # Write samplesheet with resolved paths
     samplesheet_resolved_file = outdir / re.sub(
         ".tsv", "_resolved.tsv", str(samplesheet_file.name)
     )
 
-    logger.debug(("Writing samplesheet with resolved paths "
-                  f"{samplesheet_resolved_file}"))
+    logger.debug(f"Writing samplesheet with resolved paths {samplesheet_resolved_file}")
 
     if not outdir.exists():
-        outdir.mkdir(parents = True)
-    samplesheet.to_csv(samplesheet_resolved_file,
-        sep = "\t", 
-        index = False)
+        outdir.mkdir(parents=True)
+    samplesheet.to_csv(
+        samplesheet_resolved_file,
+        sep="\t",
+        index=False
+    )
 
     return samplesheet_resolved_file
 
 
-def create_config(samplesheet_file,
-                  outdir,
-                  ignore_assemblies,
-                  force,
-                  deploy_dir,
-                  verbosity
-                  ):
+def create_config(
+    samplesheet_file,
+    outdir,
+    ignore_assemblies,
+    force,
+    deploy_dir,
+    verbosity
+):
 
-    logger.trace(("create_config(\n - "
-                  f"samplesheet_file: {samplesheet_file}\n - "
-                  f"outdir: {outdir}\n - "
-                  f"ignore_assemblies: {ignore_assemblies}\n - "
-                  f"force: {force}\n - "
-                  f"deploy_dir: {deploy_dir}\n - "
-                  f"verbosity: {verbosity}"))
+    logger.trace(
+        f"create_config(\n - samplesheet_file: {samplesheet_file}\n - "
+        f"outdir: {outdir}\n - ignore_assemblies: {ignore_assemblies}\n - "
+        f"force: {force}\n - deploy_dir: {deploy_dir}\n - "
+        f"verbosity: {verbosity})"
+    )
 
     # Determine config file
     outdir = outdir.resolve()
@@ -269,12 +255,11 @@ def create_config(samplesheet_file,
     if not config_file.exists():
         logger.trace(f"Creating new config file {config_file}")
         if not outdir.exists():
-            logger.trace((
-                "Output directory does not exist, "
-                f"creating directory {outdir}"
-            ))
+            logger.trace(
+                f"Output directory does not exist, creating directory {outdir}"
+            )
 
-            outdir.mkdir(parents = True)
+            outdir.mkdir(parents=True)
     else:
         # Ensure config is not overwritten
         timestamp = datetime.now().strftime("%y_%m_%d-%H_%M")
@@ -283,7 +268,7 @@ def create_config(samplesheet_file,
 
     if force:
         ignore_assemblies = True
-    
+
     # Record config contents
     config = {
         "samplesheet": str(samplesheet_file),
@@ -301,50 +286,61 @@ def create_config(samplesheet_file,
     return config_file
 
 
-def link_assemblies(samplesheet_file, 
-                    config_dir, 
-                    outdir,
-                    ignore_assemblies):
-    logger.trace((
-        "link_assemblies(\n - "
-        f"samplesheet_file: {samplesheet_file}\n - "
-        f"config_dir: {config_dir}\n - "
-        f"outdir: {outdir})"))
+def link_assemblies(
+    samplesheet_file,
+    config_dir,
+    outdir,
+    ignore_assemblies
+):
+    logger.trace(
+        f"link_assemblies(\n - samplesheet_file: {samplesheet_file}\n - "
+        f"config_dir: {config_dir}\n - outdir: {outdir})"
+    )
 
     logger.debug("Initiating assembly symlinking")
     logger.trace(f"Reading samplesheet from {samplesheet_file}")
-    samplesheet = pd.read_csv(samplesheet_file, 
-                              sep = "\t").set_index("sample_name")
+    samplesheet = pd.read_csv(samplesheet_file, sep="\t").set_index(
+        "sample_name"
+    )
 
 
     logger.trace(f"Importing sample configs from {config_dir}")
-    sample_configs = config_handlers.determine_sample_configs(samplesheet, 
-                                                               config_dir,
-                                                               ignore_assemblies)
+    sample_configs = sample_config.determine_sample_configs(
+        samplesheet,
+        config_dir,
+        ignore_assemblies
+    )
 
     # Iterating over sample configurations
     for sample, configs in sample_configs.items():
 
-        assembly_source = config_handlers.inspect_samplesheet_assembly_path(sample, samplesheet)
+        assembly_source = (
+            sample_config.inspect_samplesheet_assembly_path(sample, samplesheet)
+        )
         assembly_path = assembly_source.get(sample)
 
         # Attempt to locate relative paths from assembly listed in sheet
         if assembly_path is None:
             logger.trace(f"Skipping assembly for {sample}")
         elif not assembly_path:
-            logger.warning(f"Failed to locate assembly file for {sample} at {assembly_path}\nSkipping!")
+            logger.warning(
+                f"Failed to locate assembly file for {sample} at {assembly_path}"
+                "\nSkipping!"
+            )
             continue
         else:
             # Handle if assembly file exists with a valid path
             logger.trace(f"Assembly found at {assembly_path}")
 
             # Determine assemblers specified in sample configs
-            assemblers = set() 
+            assemblers = set()
             for options in configs.values():
                 if not isinstance(options, dict) or "assemblers" not in options:
                     continue
                 raw = options["assemblers"]
-                assembler_list = raw if isinstance(raw, list) else [raw]
+                assembler_list = (
+                    raw if isinstance(raw, list) else [raw]
+                )
                 assemblers.update(assembler_list)
 
             # Define assembly type from sample configurations
@@ -497,7 +493,7 @@ def launcher() -> None:
     args = parse_mmaseq()
 
     # Initiate logging
-    pkg_logging.adjust_log(logger, args.verbosity, args.logfile)
+    logging_setup.adjust_log(logger, args.verbosity, args.logfile)
 
     mmaseq(args)
 

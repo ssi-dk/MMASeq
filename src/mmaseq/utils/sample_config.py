@@ -59,7 +59,7 @@ def determine_sample_configs(samplesheet, config_dir, ignore_assemblies):
     # Iterate samplesheet and pair samples with configurations
     for sample, cfg in zip(samplesheet.index, samplesheet["config"]):
 
-        # Determine assemlby paths
+        # Determine assembly paths
         assembly_path = inspect_samplesheet_assembly_path(sample, samplesheet)
 
         # Add sample assembly to list of unknown assembler, if assembly exists
@@ -71,22 +71,29 @@ def determine_sample_configs(samplesheet, config_dir, ignore_assemblies):
 
         # Handle missing configuration file
         if not os.path.isfile(cfg_path):
-            print(f"Warning: Config file specified in samplesheet {cfg} does not exist in {config_dir}!")
+            print(
+                f"Warning: Config file specified in samplesheet {cfg} "
+                f"does not exist in {config_dir}!"
+            )
             cfg_path = None
 
             default_path = f"{config_dir}/default.yaml"
 
             # Ensure that default file exists and use it
             if os.path.exists(default_path):
-                    print("Using default.yaml instead")
-                    cfg_path = default_path
+                print("Using default.yaml instead")
+                cfg_path = default_path
             else:
-                print(f"Warning: Default configuration file is missing, please recreate it to enable default analysis: {default_path}")
+                print(
+                    "Warning: Default configuration file is missing, "
+                    "please recreate it to enable default analysis: "
+                    f"{default_path}"
+                )
 
 
-        # Read sample configrations
+        # Read sample configurations
         if cfg_path is not None:
-            #print(f"Configuration file {cfg_path} found for {sample}") # As log_debug
+            # print(f"Configuration file {cfg_path} found for {sample}")  # As log_debug
             with open(cfg_path, "r") as config_file:
                 sample_configs[sample] = yaml.safe_load(config_file)
 
@@ -98,7 +105,7 @@ def determine_sample_configs(samplesheet, config_dir, ignore_assemblies):
     if len(sample_configs) == 0:
         sys.exit("No sample configuration files found. Ensure that the `config` column of the samplesheet is correctly filled.")
 
-    # Chanfing assembler values for samples with unknown assemblers
+    # Changing assembler values for samples with unknown assemblers
     for sample in assemblers_unknown:
         sample_cfg = sample_configs.get(sample)
 
@@ -108,4 +115,4 @@ def determine_sample_configs(samplesheet, config_dir, ignore_assemblies):
             elif "assemblers" in opts.keys():
                 sample_configs[sample][mod]["assemblers"] = ["UnkAssembly"]
 
-    return(sample_configs)
+    return sample_configs

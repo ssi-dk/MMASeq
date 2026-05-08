@@ -22,7 +22,7 @@ def read_results_catalogue(results_catalogue_path):
             print("read_results_catalogue(results_catalogue_path): LAZY DEVELOPPERS... Fill out except!!!")
             results_catalogue = yaml.safe_load(results_catalogue_path)
     
-    return(results_catalogue)
+    return results_catalogue
 
 
 def deconvolute_path(template, configs):
@@ -44,10 +44,10 @@ def deconvolute_path(template, configs):
     arguments = [arg if isinstance(arg, (list, tuple)) else [arg] for arg in (configs[k] for k in options)]
 
     exhaustive_templates = list()
-    # Iteratively generate exhaustive dicts for handling multiple option/arugment relationships
+    # Iteratively generate exhaustive dicts for handling multiple option/argument relationships
     for combo in itertools.product(*arguments):
         paired = dict(zip(options, combo))
-        # Laizily map option/arguments where applicatble into expected result file names
+        # Lazily map option/arguments where applicable into expected result file names
         if len(configs) > 0:
             fname = template.format(**paired)
             exhaustive_templates.append(fname)
