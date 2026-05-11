@@ -250,16 +250,19 @@ def create_config(samplesheet_file,
                   ignore_assemblies,
                   force,
                   deploy_dir,
+                  spe_configs_dir,
                   verbosity
                   ):
 
-    logger.trace(("create_config(\n - "
-                  f"samplesheet_file: {samplesheet_file}\n - "
-                  f"outdir: {outdir}\n - "
-                  f"ignore_assemblies: {ignore_assemblies}\n - "
-                  f"force: {force}\n - "
-                  f"deploy_dir: {deploy_dir}\n - "
-                  f"verbosity: {verbosity}"))
+    logger.trace(("create_config(\n"
+                  f"samplesheet_file = {samplesheet_file}\n"
+                  f"outdir = {outdir}\n"
+                  f"ignore_assemblies = {ignore_assemblies}\n"
+                  f"force = {force}\n"
+                  f"deploy_dir = {deploy_dir}\n"
+                  f"spe_configs_dir = {spe_configs_dir}\n"
+                  f"verbosity: {verbosity}"
+                  ")"))
 
     # Determine config file
     outdir = outdir.resolve()
@@ -275,11 +278,6 @@ def create_config(samplesheet_file,
             ))
 
             outdir.mkdir(parents = True)
-    else:
-        # Ensure config is not overwritten
-        timestamp = datetime.now().strftime("%y_%m_%d-%H_%M")
-        config_file = config_file.parent / f"{timestamp}_{config_file.name}"
-        logger.debug("Old configuration file detected. Creating new file!")
 
     if force:
         ignore_assemblies = True
@@ -288,6 +286,7 @@ def create_config(samplesheet_file,
     config = {
         "samplesheet": str(samplesheet_file),
         "deploy_dir": str(deploy_dir),
+        "spe_configs_dir": str(spe_configs_dir),
         "ignore_assemblies": ignore_assemblies,
         "outdir": str(outdir),
         "verbosity": int(verbosity)
@@ -358,25 +357,32 @@ def link_assemblies(samplesheet_file,
 
                 # Handle destination when being broken links
                 if destination.is_symlink() and not destination.exists(follow_symlinks = True):
-                    logger.warning(f"""Assembly results directory is a 
-                        broken link -> unlinking: {destination}""")
+                    logger.warning((
+                        f"Assembly results directory is a "
+                        f"broken link -> unlinking: {destination}"
+                    ))
                     destination.unlink()
 
                 # Ignore pre-existing functional symbolic links at destination
-                if destination.is_symlink():
-                    logger.debug(f"""Assembly already linked to results
-                     directory at {destination}.\nSkipping!""")
+                elif destination.is_symlink():
+                    logger.debug((
+                        f"Assembly already linked to results directory. "
+                        f"Skipping {destination.name}"
+                    ))
+                    continue
 
                 # Initiate symlink creation if destination is empty
                 if not destination.exists(follow_symlinks = False):
-                    logger.debug(f"""Creating symlink: 
-                        {assembly_path} -> {destination}""")
+                    logger.debug((
+                        f"Creating symlink: {assembly_path} -> {destination}"
+                    ))
                     destination.symlink_to(assembly_path)
 
                 # Note if assembly file allready exists, but not as a link
                 else:
-                    logger.debug(f"""File exists and is not a symlink {destination}.
-                        Skipping!""")
+                    logger.debug((
+                        f"File exists and is not a symlink {destination}. "
+                        f"Skipping!"))
 
     return None
 
@@ -457,12 +463,26 @@ def mmaseq(args):
         samplesheet_file = resolve_samplesheet_paths(samplesheet_file, outdir)
         logger.info("Resolved the file paths stated in the samplesheet")
 
+    spe_configs_dir = deploy_dir / "spe_configs"
+
+    if not spe_configs_dir.exists():
+        logger.warning((
+            f"Species configuration folder not detected in {deploy_dir}. "
+            f"Will use system installation configurations.\n"
+            f"To generate your own species configurations folder, run: \n"
+            f"mmadeploy --deploy_dir {deploy_dir} --threads {threads}"
+        ))
+        spe_configs_dir = SPE_CONFIGS
+    else:
+        logger.info("Species configurations folder successfully detected.")
+
     logger.debug("Creating pipeline configuration file")
     config_file = create_config(samplesheet_file, 
                            outdir,
                            ignore_assemblies,
                            force,
                            deploy_dir,
+                           spe_configs_dir,
                            args.verbosity
                            )
 
@@ -472,7 +492,7 @@ def mmaseq(args):
     else:
         logger.info("Assemblies in samplesheet will be used to skip "
                     "assembly steps in the pipeline, where applicable!")
-        link_assemblies(samplesheet_file, str(SPE_CONFIGS), outdir, ignore_assemblies)
+        link_assemblies(samplesheet_file, spe_configs_dir, outdir, ignore_assemblies)
 
 
     logger.debug("Creating pipeline command")
