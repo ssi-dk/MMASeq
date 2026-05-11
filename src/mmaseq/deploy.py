@@ -5,6 +5,7 @@ import subprocess
 import sys
 import collections
 import ftplib
+import shutil
 
 logger = logging_setup.initiate_log("MMAdeploy")
 
@@ -102,6 +103,25 @@ def parse_deploy():
 
 
     return parser.parse_args()
+
+
+def deploy_spe_configs(deploy_dir):
+    logger.trace(("deploy_spe_configs(\n "
+        f"deploy_dir = {deploy_dir}"
+        ")"))
+
+    spe_configs_dir = deploy_dir / "spe_configs"
+    
+    logger.trace("Checking whether config dir allready exists")
+    if not spe_configs_dir.exists():
+        logger.trace(f"Couldn't locate {spe_configs_dir}, clonig from {SPE_CONFIGS}")
+        shutil.copytree(SPE_CONFIGS, spe_configs_dir)
+        #SPE_CONFIGS.copy(spe_configs_dir) # Use from python 3.14+ and remove import shutils
+        logger.info("Copied species configs directory from installation folder into deployment dir.")
+    else:
+        logger.info("Species configuration directory allready exists. Skipping!")
+
+    return None
 
 
 def extract_hosts(urls):
@@ -227,6 +247,8 @@ def deploy_dataset(update, max_retries):
         f"max_retries: {max_retries})"
     )
 
+
+
     with open(URL_FILE, "r") as url_file:
         urls = url_file.read().splitlines()
 
@@ -246,6 +268,13 @@ def deploy_dataset(update, max_retries):
 
         try:        
             ftp = connect_ftp(host)
+        except TimeoutError as e:
+            logger.error((
+                f"ftp connection to {host} could not be established. Are you firewalled?\n"
+                "Check whether ftp ports are openned (default is often 20, 21 or 990). "
+                "Skipping host!"
+            ))
+            continue
         except Exception as e:
             logger.error(
                 f"What? Something bad is going on... Skipping!!!\n{e}"
@@ -253,8 +282,10 @@ def deploy_dataset(update, max_retries):
             continue
 
         download_ftp_file(ftp, paths, READ_DIR, max_retries)
-
+        
         disconnect_ftp(ftp)
+
+    return None
 
 
 def deploy(args):
@@ -265,7 +296,10 @@ def deploy(args):
     threads = args.threads
     verbosity = args.verbosity
 
-    logger.info("Inspecting the deployment dataset")
+    logger.info("Inspecting species configuration directory")
+    deploy_spe_configs(deploy_dir)
+
+    logger.info(f"Inspecting the deployment dataset")
     deploy_dataset(update, retries)
 
     config = f"{PKG_CONFIGS}/Test.yaml"
