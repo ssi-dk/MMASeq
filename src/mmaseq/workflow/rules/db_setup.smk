@@ -3,7 +3,7 @@ rule setup_PlasmidFinder:
         database = directory("%s/plasmidfinder_db" %database_dir),
         version_db = "%s/plasmidfinder_db/PlasmidFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "plasmidfinder.yaml"
+        ENVS_DIR / "CGE_finders.yaml"
     log:
         stdout = "%s/Databases/setup_PlasmidFinder.log" %logdir
     message:
@@ -45,7 +45,7 @@ rule setup_ResFinder:
         database = directory("%s/resfinder_db" %database_dir),
         version_db = "%s/resfinder_db/ResFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "resfinder.yaml"
+        ENVS_DIR / "CGE_finders.yaml"
     log:
         stdout = "%s/Databases/setup_ResFinder.log" %logdir
     message:
@@ -87,7 +87,7 @@ rule setup_PointFinder:
         database = directory("%s/pointfinder_db" %database_dir),
         version_db = "%s/pointfinder_db/PointFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "resfinder.yaml"
+        ENVS_DIR / "CGE_finders.yaml"
     log:
         stdout = "%s/Databases/setup_PointFinder.log" %logdir
     message:
@@ -130,7 +130,7 @@ rule setup_DisinFinder:
         database = directory("%s/disinfinder_db" %database_dir),
         version_db = "%s/disinfinder_db/DisinFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "resfinder.yaml"
+        ENVS_DIR / "CGE_finders.yaml"
     log:
         stdout = "%s/Databases/setup_DisinFinder.log" %logdir
     message:
@@ -172,7 +172,7 @@ rule setup_VirulenceFinder:
         database = directory("%s/virulencefinder_db" %database_dir),
         version_db = "%s/virulencefinder_db/VirulenceFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "virulencefinder.yaml"
+        ENVS_DIR / "CGE_finders.yaml"
     log:
         stdout = "%s/Databases/setup_VirulenceFinder.log" %logdir
     message:
@@ -214,7 +214,7 @@ rule setup_SerotypeFinder:
         database = directory("%s/serotypefinder_db" %database_dir),
         version_db = "%s/serotypefinder_db/SerotypeFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "serotypefinder.yaml"
+        ENVS_DIR / "CGE_finders.yaml"
     log:
         stdout = "%s/Databases/setup_SerotypeFinder.log" %logdir
     message:
@@ -335,6 +335,55 @@ rule setup_kleborate_amrfinder:
             cmd="ln -sf $version_database {output.version_db}"
             echo "Executing command:\n$cmd\n" >> {log.stdout} 2>&1
             eval $cmd >> {log.stdout} 2>&1
+        """
+
+
+rule setup_LREfinder:
+    params:
+        prefix = "%s/custom/" %database_dir,
+        dbdir = "%s/custom/elmDB/" %database_dir,
+    output:
+        source = "%s/custom/elmDB.fasta" %database_dir,
+        version_db = "%s/custom/elmDB_version.txt" % database_dir
+    conda:
+        ENVS_DIR / "kmeraligner.yaml"
+    log:
+        stdout = "%s/Databases/LREfinder_db.log" %logdir
+    message:
+        "[setup_LREfinder]: Setting up LREfinder database"
+    shell:
+        """
+        set -euo pipefail
+        mkdir -p $(dirname {output.source})
+
+        sequence_url="https://bitbucket.org/genomicepidemiology/lre-finder/raw/fac445d190853cc90c1aed392a55102fe9df4376/elmDB.tar.gz"
+
+        # 1) download raw sequence
+        cmd="curl -fSL $sequence_url --output - | tar -xzvf - -C {params.prefix} && mv {params.dbdir}elm.fsa {output.source} && rm -rf {params.dbdir}"
+
+        echo -e "Executing command:\n$cmd\n" > {log.stdout} 2>&1
+        eval $cmd >> {log.stdout} 2>&1
+
+
+        # 2) download version from etag
+        etag_cmd="curl -sI $sequence_url | sed -n 's/^etag: //Ip' | tr -d '\\r' | tr -d '\\042'"
+        date_cmd="date -I"
+
+        echo -e "Executing command:\n$etag_cmd\n$date_cmd\n" >> {log.stdout} 2>&1
+
+        etag_str="$(eval "$etag_cmd" 2>> {log.stdout})"
+        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
+
+        # Fallback if no ETag is present for some reason
+        if [ -z "$etag_str" ]; then
+            etag_str="no_etag"
+        fi
+        
+        # Build version ID. If you DON'T want the ETag at all, set version_str="sistr_serovar_list"
+        version_str="LREfinder_elmDB_$etag_str"
+
+        # Write "<id>\t<download_date>" to the version file
+        printf '%s\t%s\n' "$version_str" "$date_str" > {output.version_db}
         """
 
 
