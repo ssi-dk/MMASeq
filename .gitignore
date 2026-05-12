@@ -1,7 +1,7 @@
 .snakemake/
 Logs
 __pycache__**
-data/reads/*gz
+*fastq.gz
 resources/
 *DS_store
 .gitignore

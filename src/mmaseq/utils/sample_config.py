@@ -25,13 +25,13 @@ def inspect_samplesheet_assembly_path(sample, samplesheet):
     assembly_from_sheet = samplesheet.at[sample, "assembly"]
     
     # Handle if assembly is determined as NA
-    assembly_path = Path(assembly_from_sheet)
+    assembly_path = Path(str(assembly_from_sheet))
     
-    if assembly_path.exists(follow_symlinks = True):
-        path = {sample: assembly_path}
-    elif pd.isna(assembly_from_sheet):
+    if pd.isna(assembly_from_sheet):
         logger.trace(f"No assembly provided for {sample}")
         path = {sample: None}
+    elif assembly_path.exists(follow_symlinks = True):
+        path = {sample: assembly_path}
     else:
         logger.warning(f"Failed to find {assembly_from_sheet}")
         path = {sample: False}

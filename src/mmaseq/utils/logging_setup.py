@@ -27,7 +27,7 @@ def adjust_log(logger, verbosity, logfile=None):
     """
     def trace(self, msg, *args, **kwargs):
         if self.isEnabledFor(TRACE_LEVEL):
-            self._log(TRACE_LEVEL, msg, *args, **kwargs)
+            self._log(TRACE_LEVEL, msg, args, **kwargs)
 
     # Adding TRACE level
     TRACE_LEVEL = 5
@@ -37,7 +37,7 @@ def adjust_log(logger, verbosity, logfile=None):
 
     # Define text formatting options
     logformat_simple = "[%(name)s] %(levelname)s: %(message)s"
-    logformat_advced = "[%(name)s] %(levelname)s %(asctime)s: %(message)s"
+    logformat_advanced = "[%(name)s] %(levelname)s %(asctime)s: %(message)s"
 
     # Determine verbosity settings
     level = logging.INFO

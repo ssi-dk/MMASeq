@@ -45,7 +45,7 @@ logger.trace("Reading result files catalogue")
 results_catalogue = helpers.read_results_catalogue(CATALOGUE_PATH)
 
 logger.trace("Defining sample specific configurations")
-sample_configs = helper_functions.determine_sample_configs(samplesheet, 
+sample_configs = sample_config.determine_sample_configs(samplesheet, 
                                                            spe_configs_dir, 
                                                            ignore_assemblies)
 
