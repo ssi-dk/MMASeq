@@ -86,6 +86,17 @@ def parse_mmaseq():
             "overwrite samplesheet. (Default: %(default)s)"
         )
     )
+    
+    parser.add_argument(
+        "--clean",
+        dest="clean",
+        action="store_false",
+        help=(
+            "Remove intermediate folders and files after completion. (Default: %(default)s) "
+            "If disabled, intermediate folders are maintained as OUTDIR/SAMPLE/raw/MODULE/ "
+            "while result files are copied to OUTDIR/SAMPLE/MODULE/"
+        )
+    )
 
     parser.add_argument(
         "--force",
@@ -387,21 +398,24 @@ def create_command(threads,
                    config_file, 
                    conda_dir,
                    force,
-                   arguments = None, 
-                   rules = None):
-    logger.trace(("create_command(\n - "
-                  f"config_file: {config_file}\n - "
-                  f"conda_dir: {conda_dir}\n - "
-                  f"force: {force}\n - "
-                  f"arguments: {arguments}\n - "
-                  f"rules: {rules})"))
+                   clean,
+                   arguments = None):
+    logger.trace(("create_command(\n"
+                  f"config_file={config_file}\n"
+                  f"conda_dir={conda_dir}\n"
+                  f"force={force}\n"
+                  f"clean={clean}\n"
+                  f"arguments={arguments})"))
 
     # Define arguments and rules as a single string
     additionals = " ".join(arguments) if arguments else ""
-    target_rules = " ".join(rules) if rules else ""
 
     if force:
-        additionals += " --forceall"
+        additionals += "--forceall "
+           
+    target_rule = "long "
+    if clean:
+        target_rule = "clean "
 
     # Determine command
     command = (
@@ -413,7 +427,7 @@ def create_command(threads,
         f"--snakefile {SNAKEFILE} "
         f"--conda-prefix {conda_dir} "
         f"{additionals} "
-        f"{target_rules}"
+        f"{target_rule}"
     )
 
     return command
@@ -433,6 +447,7 @@ def mmaseq(args):
     outdir = Path(args.outdir)
     threads = args.threads
     resolve = args.resolve
+    clean = args.clean
     force = args.force
     ignore_assemblies = args.ignore_assemblies
 
@@ -495,7 +510,8 @@ def mmaseq(args):
     command = create_command(threads,
                              config_file, 
                              conda_dir,
-                             force
+                             force,
+                             clean
                              )
 
     logger.info(

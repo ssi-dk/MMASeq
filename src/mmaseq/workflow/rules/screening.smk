@@ -5,8 +5,7 @@ rule plasmidfinder:
         R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
         database = rules.setup_PlasmidFinder.output.database
     output:
-        # Output directory for plasmidfinder results.
-        replicons = "%s/{sample}/plasmidfinder/results_tab.tsv" %outdir
+        replicons = "%s/{sample}/raw/plasmidfinder/results_tab.tsv" %outdir
     conda:
         ENVS_DIR / "CGE_finders.yaml"
     log:
@@ -34,8 +33,8 @@ rule resfinder:
     params:
         options = lambda wc: sample_configs[wc.sample]["resfinder"]["options"]
     output:
-        resistance = "%s/{sample}/resfinder/ResFinder_results_tab.txt" %outdir,
-        tool_version = "%s/{sample}/resfinder/ResFinder_version.txt" %outdir,
+        resistance = "%s/{sample}/raw/resfinder/ResFinder_results_tab.txt" %outdir,
+        tool_version = "%s/{sample}/raw/resfinder/ResFinder_version.txt" %outdir,
     conda:
         ENVS_DIR / "CGE_finders.yaml"
     log:
@@ -73,7 +72,7 @@ rule virulencefinder:
         R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
         database = rules.setup_VirulenceFinder.output.database
     output:
-        virulence = "%s/{sample}/virulencefinder/results_tab.tsv" %outdir,
+        virulence = "%s/{sample}/raw/virulencefinder/results_tab.tsv" %outdir,
     conda:
         ENVS_DIR / "CGE_finders.yaml"
     log:
@@ -97,8 +96,8 @@ rule amrfinder:
     params:
         options = lambda wc: sample_configs[wc.sample]["amrfinder"]["options"]
     output:
-        result = "%s/{sample}/amrfinder/{assembler}.tsv" %outdir,
-        tool_version = "%s/{sample}/amrfinder/{assembler}_amrfinder_version.txt" %outdir,
+        result = "%s/{sample}/raw/amrfinder/{assembler}.tsv" %outdir,
+        tool_version = "%s/{sample}/raw/amrfinder/{assembler}_amrfinder_version.txt" %outdir,
     conda:
         ENVS_DIR / "amrfinder.yaml"
     log:
@@ -128,13 +127,12 @@ rule amrfinder:
 
 rule LREfinder:
     input:
-        # A complete access to the wildcard is needed, if we try to call the output of different rule we have the blending of wildcards 
         res = rules.custom_kmeralignment.output.results,
         matrix = rules.custom_kmeralignment.output.matrix
     # params:
     #     options = lambda wildcards: species_configs[sample_to_organism[wildcards.sample]]["analyses_to_run"]["custom_blaster"]["options"],    
     output:
-        results = "%s/{sample}/LREfinder/{database}.tsv" %outdir,
+        results = "%s/{sample}/raw/LREfinder/{database}.tsv" %outdir,
     conda:
         ENVS_DIR / "py_utls.yaml"
     log:
@@ -161,8 +159,8 @@ rule custom_blaster:
     params:
         options = lambda wc: sample_configs[wc.sample]["custom_blaster"]["options"]
     output:
-        results = "%s/{sample}/custom_blaster/blast_{assembler}_{database}.tsv" %outdir,
-        tool_version = "%s/{sample}/custom_blaster/blast_{assembler}_{database}_version.txt" %outdir,
+        results = "%s/{sample}/raw/custom_blaster/blast_{assembler}_{database}.tsv" %outdir,
+        tool_version = "%s/{sample}/raw/custom_blaster/blast_{assembler}_{database}_version.txt" %outdir,
     conda:
         ENVS_DIR / "blast.yaml"
     log:

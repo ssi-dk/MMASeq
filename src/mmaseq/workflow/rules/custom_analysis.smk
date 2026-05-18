@@ -6,7 +6,7 @@ rule snp_identifier:
         options = lambda wc: sample_configs[wc.sample]["snp_identifier"]["options"],
         metafile = "%s/SNP_metafile.tsv" %SCREENING_DIR
     output:
-        indentified_variants = "%s/{sample}/snp_identifier/{database}.tsv" %outdir
+        indentified_variants = "%s/{sample}/raw/snp_identifier/{database}.tsv" %outdir
     conda:
         ENVS_DIR / "py_utls.yaml"
     log:
@@ -33,7 +33,7 @@ rule deletion_identifier:
         options  = lambda wc: sample_configs[wc.sample]["deletion_identifier"]["options"],
         metafile = "%s/deletion_metafile.tsv" %SCREENING_DIR
     output:
-        identified_variants = f"{outdir}/{{sample}}/deletion_identifier/{{assembler,[^_]+}}_{{database}}.tsv" #added regex expression to ensure assemblies cannot contain '_' which our database also does
+        identified_variants = f"{outdir}/{{sample}}/raw/deletion_identifier/{{assembler,[^_]+}}_{{database}}.tsv" #added regex expression to ensure assemblies cannot contain '_' which our database also does
     conda:
         ENVS_DIR / "py_utls.yaml"
     log:
@@ -58,7 +58,7 @@ rule cdiff_repeat_identifier:
         repeats = lambda wc: sample_configs[wc.sample]["cdiff_repeat_identifier"]["repeats"],
         combos = lambda wc: sample_configs[wc.sample]["cdiff_repeat_identifier"]["combos"]
     output:
-        repeat_types = "%s/{sample}/cdiff_repeat_identifier/{assembler}_repeat_types.tsv" %outdir
+        repeat_types = "%s/{sample}/raw/cdiff_repeat_identifier/{assembler}_repeat_types.tsv" %outdir
     conda:
         ENVS_DIR / "py_utls.yaml"
     log:

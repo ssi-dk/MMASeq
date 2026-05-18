@@ -3,7 +3,7 @@ rule spades:
         R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
         R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
     output:
-        assembly = "%s/{sample}/spades/{sample}.fasta" %outdir
+        assembly = "%s/{sample}/raw/spades/{sample}.fasta" %outdir
     conda:
         ENVS_DIR / "shovill.yaml"
     log:
@@ -30,7 +30,7 @@ rule skesa:
         R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
         R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
     output:
-        assembly = "%s/{sample}/skesa/{sample}.fasta" %outdir
+        assembly = "%s/{sample}/raw/skesa/{sample}.fasta" %outdir
     conda:
         ENVS_DIR / "shovill.yaml"
     log:
@@ -52,7 +52,7 @@ rule shovill:
         R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
         R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
     output:
-        assembly = "%s/{sample}/shovill/{sample}.fasta" %outdir
+        assembly = "%s/{sample}/raw/shovill/{sample}.fasta" %outdir
     conda:
         ENVS_DIR / "shovill.yaml"
     log:
@@ -84,6 +84,9 @@ rule assembly:
         output_assembly = "%s/{sample}/Assemblies/{sample}_{assembler}.fasta" %outdir
     log:
         stdout = "%s/Assemblies/{sample}_{assembler}_assembly.log" %logdir
+    message:
+        "[assembly]: Moving {wildcards.assembler} assembly for {wildcards.sample} from raw location to assembly folder"
+ 
     shell:
         """
         mkdir -p $(dirname {output.output_assembly})

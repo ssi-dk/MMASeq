@@ -4,9 +4,9 @@ rule mlst:
     input:
         assembly = rules.assembly.output.output_assembly
     output:
-        mlst_file = "%s/{sample}/mlst/{assembler}_mlst.tsv" %outdir,
-        mlst_tmp = temp("%s/{sample}/mlst/{assembler}_mlst.mp" %outdir),
-        tool_version = "%s/{sample}/mlst/{assembler}_mlst_version.txt" %outdir,
+        mlst_file = "%s/{sample}/raw/mlst/{assembler}_mlst.tsv" %outdir,
+        mlst_tmp = temp("%s/{sample}/raw/mlst/{assembler}_mlst.mp" %outdir),
+        tool_version = "%s/{sample}/raw/mlst/{assembler}_mlst_version.txt" %outdir,
     conda:
         ENVS_DIR / "mlst.yaml"
     log:
@@ -43,7 +43,7 @@ rule kleborate:
         assembly = rules.assembly.output.output_assembly,
         version_db = rules.setup_kleborate_amrfinder.output.version_db
     output:
-        kleborate = "%s/{sample}/kleborate/{assembler}/Kleborate_long.tsv" %outdir
+        kleborate = "%s/{sample}/raw/kleborate/{assembler}/Kleborate_long.tsv" %outdir
     params:
         options = lambda wildcards: sample_configs[wildcards.sample]["kleborate"]["options"]
     conda:
@@ -90,7 +90,7 @@ rule chtyper:
         id = 90,
         coverage = 60
     output:
-        filtered_tsv = "%s/{sample}/chtyper/{database}_chtyper.tsv" % outdir
+        filtered_tsv = "%s/{sample}/raw/chtyper/{database}_chtyper.tsv" % outdir
     log:
         stdout = "%s/{sample}/{database}_chtyper.log" %logdir
     message:
@@ -111,8 +111,8 @@ rule meningotype:
     input:
         assembly = rules.assembly.output.output_assembly,
     output:
-        meningotype = "%s/{sample}/meningotype/{assembler}_meningotype.tsv" %outdir,
-        tool_version = "%s/{sample}/meningotype/{assembler}_meningotype_version.txt" %outdir,
+        meningotype = "%s/{sample}/raw/meningotype/{assembler}_meningotype.tsv" %outdir,
+        tool_version = "%s/{sample}/raw/meningotype/{assembler}_meningotype_version.txt" %outdir,
     conda:
         ENVS_DIR / "meningotype.yaml"
     log:
@@ -146,8 +146,8 @@ rule seqsero2:
         R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
         R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
     output:
-        seqsero = "%s/{sample}/seqsero2/SeqSero_result.tsv" %outdir,
-        tool_version = "%s/{sample}/seqsero2/SeqSero_version.txt" %outdir,
+        seqsero = "%s/{sample}/raw/seqsero2/SeqSero_result.tsv" %outdir,
+        tool_version = "%s/{sample}/raw/seqsero2/SeqSero_version.txt" %outdir,
     threads: max(1, workflow.cores - 1 - (workflow.cores - 1) % 2)
     priority: 1
     conda:
@@ -183,10 +183,10 @@ rule sistr:
         assembly = rules.assembly.output.output_assembly,
         serovarlist = rules.fetch_Senterica_Serovar.output.source
     output:
-        sistr_tab = "%s/{sample}/sistr/{assembler}_sistr.tab" %outdir,
-        gmlst_profile = "%s/{sample}/sistr/{assembler}_cgmlst_profiles.csv" %outdir,
-        allele_results = "%s/{sample}/sistr/{assembler}_allele-results.json" %outdir,
-        tool_version = "%s/{sample}/sistr/{assembler}_sistr_version.txt" %outdir,
+        sistr_tab = "%s/{sample}/raw/sistr/{assembler}_sistr.tab" %outdir,
+        gmlst_profile = "%s/{sample}/raw/sistr/{assembler}_cgmlst_profiles.csv" %outdir,
+        allele_results = "%s/{sample}/raw/sistr/{assembler}_allele-results.json" %outdir,
+        tool_version = "%s/{sample}/raw/sistr/{assembler}_sistr_version.txt" %outdir,
     threads: max(1, workflow.cores - 1 - (workflow.cores - 1) % 2)
     priority: 1
     conda:
@@ -223,7 +223,7 @@ rule serotypefinder:
         R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
         database = rules.setup_SerotypeFinder.output.database
     output:
-        serotype = "%s/{sample}/serotypefinder/results_tab.tsv" %outdir,
+        serotype = "%s/{sample}/raw/serotypefinder/results_tab.tsv" %outdir,
     conda:
         ENVS_DIR / "CGE_finders.yaml"
     log:
@@ -244,7 +244,7 @@ rule spa_typing:
         assembly = rules.assembly.output.output_assembly,
         database = rules.setup_Spatyper.output.database
     output:
-        spatyper = "%s/{sample}/spatyper/{assembler}_spatype_results.tsv" %outdir
+        spatyper = "%s/{sample}/raw/spatyper/{assembler}_spatype_results.tsv" %outdir
     conda:
         ENVS_DIR / "py_utls.yaml"
     log:
