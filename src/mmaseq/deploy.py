@@ -135,10 +135,10 @@ def extract_hosts(urls):
     return hosts
 
 
-def connect_ftp(host):
+def connect_ftp(host, timeout = 45):
     logger.trace(f"Connecting to {host}")
 
-    ftp = ftplib.FTP(host)
+    ftp = ftplib.FTP(host, timeout = timeout)
 
     # Anonymous login
     ftp.login()
