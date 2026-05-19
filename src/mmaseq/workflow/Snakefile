@@ -49,9 +49,22 @@ sample_configs = sample_config.determine_sample_configs(samplesheet,
                                                            spe_configs_dir, 
                                                            ignore_assemblies)
 
+all_raw_result_files = result_paths.define_all_result_files(outdir, 
+                                                            sample_configs, 
+                                                            results_catalogue,
+                                                            raw=True)
 all_result_files = result_paths.define_all_result_files(outdir, 
-                                                        sample_configs, 
-                                                        results_catalogue)
+                                                            sample_configs, 
+                                                            results_catalogue,
+                                                            raw=False)
+
+all_raw_result_filepaths = [
+    path
+    for sample in all_raw_result_files.values()
+    for files in sample.values()
+    for path in files
+]
+
 
 all_result_filepaths = [
     path
@@ -60,19 +73,58 @@ all_result_filepaths = [
     for path in files
 ]
 
+#################################
 logger.info("Initiating pipeline")
-
-
-# Define the dynamic input for rule all
-###################################################################
-rule all:
+rule copy:
     input:
-        all = all_result_filepaths
+        raw = all_raw_result_filepaths
     output:
-        all = "%s/results_long.tsv" %outdir
+        files = all_result_filepaths
+    message:
+        "[copy_results] Copying results files"
+    shell:
+        """
+        for FILE in {input.raw}; do
+            RAWDIR=$(dirname $FILE)
+            NEWDIR="${{RAWDIR//\\/raw\\//\\/}}"
+            
+            echo "Copying $FILE to $NEWDIR/"
+            mkdir -p $NEWDIR
+            cp -f $FILE $NEWDIR/
+        done
+        """
+
+
+rule table:
+    input:
+        files = rules.copy.output.files
+    params:
+        results_dict = all_result_files
+    output:
+        long = "%s/results_long.tsv" %outdir
+    message:
+        "[keep]: Generating long table"
     run:
-        all_results_long = results_aggregator.generate_long_results(all_result_files)
-        all_results_long.to_csv(output.all, sep = "\t")
+        all_results_long = results_aggregator.generate_long_results(params.results_dict)
+        all_results_long.to_csv(output.long, sep = "\t")
+
+
+rule clean:
+    input:
+        long = rules.table.output.long,
+        raw = rules.copy.input.raw
+    message:
+        "[clean_results]: Removing intermediate folders"
+    shell:
+        """
+        for DIR in $(dirname {input.raw}); do
+           RAW=$(dirname $DIR)
+           if [ -d "$RAW" ]; then 
+               echo "Removing $RAW"
+               rm -r $RAW
+           fi
+        done
+        """
 
 
 include : "rules/db_fetch.smk"      
@@ -83,6 +135,3 @@ include : "rules/variant_calling.smk"
 include : "rules/screening.smk"
 include : "rules/typing.smk"
 include : "rules/custom_analysis.smk"
-
-
-

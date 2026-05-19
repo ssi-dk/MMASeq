@@ -8,7 +8,7 @@ from collections import defaultdict
 from .helpers import deconvolute_path, read_results_catalogue
 
 
-def define_module_results_file(outdir, sample, module, results_catalogue, sample_configs):
+def define_module_results_file(outdir, sample, module, results_catalogue, sample_configs, raw):
     """
     Defines the expected result file paths for a specific module and sample.
 
@@ -24,6 +24,9 @@ def define_module_results_file(outdir, sample, module, results_catalogue, sample
     """
     # Define prefix for result file paths
     prefix = Path(f"{outdir}/{sample}/{module}").expanduser()
+    if raw:
+        prefix = Path(f"{outdir}/{sample}/raw/{module}").expanduser()
+    
 
     # Define and normalise expected result file names
     result_strings = results_catalogue.get(module)
@@ -47,7 +50,7 @@ def define_module_results_file(outdir, sample, module, results_catalogue, sample
     return module_result_files
 
 
-def define_all_result_files(outdir, sample_configs, results_catalogue):
+def define_all_result_files(outdir, sample_configs, results_catalogue, raw):
     """
     Defines all expected result file paths for all samples and modules.
 
@@ -86,7 +89,7 @@ def define_all_result_files(outdir, sample_configs, results_catalogue):
             if not isinstance(configs, dict):
                 configs = dict()  # Not a dict means no keywords
 
-            result_files = define_module_results_file(outdir, sample, mod, results_catalogue, sample_configs)
+            result_files = define_module_results_file(outdir, sample, mod, results_catalogue, sample_configs, raw)
 
             all_result_files[sample].update({mod: result_files})
 

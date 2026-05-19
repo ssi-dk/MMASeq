@@ -1,10 +1,10 @@
 rule samtools_sam_filtration:
     input:
-        sam = "%s/{sample}/samtools/{database}.sam" %outdir
+        sam = "%s/{sample}/raw/samtools/{database}.sam" %outdir
     params:
         options = lambda wc: sample_configs[wc.sample]["samtools"]["view_options"]
     output:
-        bam = temp("%s/{sample}/samtools/{database}_filtered.bam" %outdir)
+        bam = temp("%s/{sample}/raw/samtools/{database}_filtered.bam" %outdir)
     conda:
         ENVS_DIR / "htslib.yaml"
     log:
@@ -22,11 +22,11 @@ rule samtools_sam_filtration:
 
 rule samtools_bam_filtration:
     input:
-        bam = "%s/{sample}/samtools/{database}.bam" %outdir
+        bam = "%s/{sample}/raw/samtools/{database}.bam" %outdir
     params:
         options = lambda wc: sample_configs[wc.sample]["samtools"]["view_options"]
     output:
-        bam = temp("%s/{sample}/samtools/{database}_filtered.bam" %outdir)
+        bam = temp("%s/{sample}/raw/samtools/{database}_filtered.bam" %outdir)
     conda:
         ENVS_DIR / "htslib.yaml"
     log:
@@ -44,12 +44,12 @@ rule samtools_bam_filtration:
 
 rule samtools_sort:
     input:
-        bam = "%s/{sample}/samtools/{database}_filtered.bam" %outdir
+        bam = "%s/{sample}/raw/samtools/{database}_filtered.bam" %outdir
     params:
         options = lambda wc: sample_configs[wc.sample]["samtools"]["sort_options"]
     output:
-        bam_sort = temp("%s/{sample}/samtools/{database}_sorted.bam" %outdir),
-        index = temp("%s/{sample}/samtools/{database}_sorted.bam.bai" %outdir)
+        bam_sort = temp("%s/{sample}/raw/samtools/{database}_sorted.bam" %outdir),
+        index = temp("%s/{sample}/raw/samtools/{database}_sorted.bam.bai" %outdir)
     conda:
         ENVS_DIR / "htslib.yaml"
     log:
@@ -75,8 +75,8 @@ rule bcftools_pileup:
         bam_sort = rules.samtools_sort.output.bam_sort,
         reference = "%s/samtools/{database}.fasta" %database_dir
     output:
-        pileup = temp("%s/{sample}/bcftools/{database}_pileup.bcf" %outdir),
-        index = temp("%s/{sample}/bcftools/{database}_pileup.bcf.csi" %outdir)
+        pileup = temp("%s/{sample}/raw/bcftools/{database}_pileup.bcf" %outdir),
+        index = temp("%s/{sample}/raw/bcftools/{database}_pileup.bcf.csi" %outdir)
     conda:
         ENVS_DIR / "htslib.yaml"
     log:
@@ -104,8 +104,8 @@ rule bcftools_filter_indels:
     params:
         options = lambda wc: sample_configs[wc.sample]["bcftools"]["view_options"]
     output:
-        indels = temp("%s/{sample}/bcftools/{database}_pileup_indels.bcf" %outdir),
-        index = temp("%s/{sample}/bcftools/{database}_pileup_indels.bcf.csi" %outdir)
+        indels = temp("%s/{sample}/raw/bcftools/{database}_pileup_indels.bcf" %outdir),
+        index = temp("%s/{sample}/raw/bcftools/{database}_pileup_indels.bcf.csi" %outdir)
     conda:
         ENVS_DIR / "htslib.yaml"
     log:
@@ -131,8 +131,8 @@ rule bcftools_variant_call:
         pileup = rules.bcftools_pileup.output.pileup,
         pileup_index = rules.bcftools_pileup.output.index,
     output: 
-        variants = temp("%s/{sample}/bcftools/{database}_call_variants.bcf" %outdir),
-        index = temp("%s/{sample}/bcftools/{database}_call_variants.bcf.csi" %outdir)
+        variants = temp("%s/{sample}/raw/bcftools/{database}_call_variants.bcf" %outdir),
+        index = temp("%s/{sample}/raw/bcftools/{database}_call_variants.bcf.csi" %outdir)
     conda:
         ENVS_DIR / "htslib.yaml"
     log:

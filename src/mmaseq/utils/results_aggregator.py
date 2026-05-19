@@ -53,9 +53,7 @@ def generate_long_results(all_result_files):
     for sample, modules in all_result_files.items():
 
         for mod, files in modules.items():
-
             for file in files:
-
                 try:
                     sample_results = pd.read_csv(file, sep = "\t", index_col = False)
                 except pd.errors.EmptyDataError:
