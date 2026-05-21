@@ -7,7 +7,7 @@ rule plasmidfinder:
     output:
         replicons = "%s/{sample}/raw/plasmidfinder/results_tab.tsv" %outdir
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "plasmidfinder.yaml"
     log:
         stdout = "%s/{sample}/plasmidfinder.log" %logdir
     message:
@@ -33,10 +33,9 @@ rule resfinder:
     params:
         options = lambda wc: sample_configs[wc.sample]["resfinder"]["options"]
     output:
-        resistance = "%s/{sample}/raw/resfinder/ResFinder_results_tab.txt" %outdir,
-        tool_version = "%s/{sample}/raw/resfinder/ResFinder_version.txt" %outdir,
+        resistance = "%s/{sample}/raw/resfinder/ResFinder_results_tab.txt" %outdir
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "resfinder.yaml"
     log:
         stdout = "%s/{sample}/resfinder.log" %logdir
     message:
@@ -48,21 +47,6 @@ rule resfinder:
     
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
-
-        cmd1="run_resfinder.py --version"
-        echo "Executing command:\n$cmd1\n" > {log.stdout} 2>&1
-        eval $cmd1 >> {log.stdout} 2>&1
-
-        # 2) create version file with date
-        version_cmd="run_resfinder.py --version"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s%s\t%s\n' "ResFinder_" "$version_str" "$date_str" > {output.tool_version}
         """
 
 
@@ -74,7 +58,7 @@ rule virulencefinder:
     output:
         virulence = "%s/{sample}/raw/virulencefinder/results_tab.tsv" %outdir,
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "virulencefinder.yaml"
     log:
         stdout = "%s/{sample}/virulencefinder.log" %logdir
     message:
@@ -82,7 +66,7 @@ rule virulencefinder:
     shell:
         """
         outdir=$(dirname {output.virulence})
-        cmd="virulencefinder.py -i {input.R1} {input.R2} -o $outdir -p {input.database} -x"
+        cmd="python -m virulencefinder -ifq {input.R1} {input.R2} -o $outdir -p {input.database} -x"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -96,8 +80,7 @@ rule amrfinder:
     params:
         options = lambda wc: sample_configs[wc.sample]["amrfinder"]["options"]
     output:
-        result = "%s/{sample}/raw/amrfinder/{assembler}.tsv" %outdir,
-        tool_version = "%s/{sample}/raw/amrfinder/{assembler}_amrfinder_version.txt" %outdir,
+        result = "%s/{sample}/raw/amrfinder/{assembler}.tsv" %outdir
     conda:
         ENVS_DIR / "amrfinder.yaml"
     log:
@@ -112,17 +95,6 @@ rule amrfinder:
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
-
-        # 2) create version file with date
-        version_cmd="amrfinder --version"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s%s\t%s\n' "amrfinder_" "$version_str" "$date_str" > {output.tool_version}
         """
 
 rule LREfinder:
@@ -159,8 +131,7 @@ rule custom_blaster:
     params:
         options = lambda wc: sample_configs[wc.sample]["custom_blaster"]["options"]
     output:
-        results = "%s/{sample}/raw/custom_blaster/blast_{assembler}_{database}.tsv" %outdir,
-        tool_version = "%s/{sample}/raw/custom_blaster/blast_{assembler}_{database}_version.txt" %outdir,
+        results = "%s/{sample}/raw/custom_blaster/blast_{assembler}_{database}.tsv" %outdir
     conda:
         ENVS_DIR / "blast.yaml"
     log:
@@ -175,16 +146,5 @@ rule custom_blaster:
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
-    
-        # 2) create version file with date
-        version_cmd=" blastn -version|head -1"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s\t%s\n' "$version_str" "$date_str" > {output.tool_version}
         """
 

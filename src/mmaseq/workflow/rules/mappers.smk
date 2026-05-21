@@ -8,8 +8,7 @@ rule custom_kmeralignment:
     output:
         results = "%s/{sample}/raw/kmeraligner/{database}.res" %outdir,
         sam = temp("%s/{sample}/raw/samtools/{database}.sam" %outdir),
-        matrix = temp("%s/{sample}/raw/kmeraligner/{database}.mat.gz" %outdir),
-        tool_version = "%s/{sample}/raw/kmeraligner/{database}_kmaalign_version.txt" %outdir,
+        matrix = temp("%s/{sample}/raw/kmeraligner/{database}.mat.gz" %outdir)
     conda:
         ENVS_DIR / "kmeraligner.yaml"
     log:
@@ -28,17 +27,6 @@ rule custom_kmeralignment:
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
-
-        # 2) create version file with date
-        version_cmd="kma -v"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s\t%s\n' "$version_str" "$date_str" > {output.tool_version}
         """
 
 rule custom_kmerconsensus:
@@ -51,8 +39,7 @@ rule custom_kmerconsensus:
     output:
         results = temp("%s/{sample}/raw/kmerconsensus/{database}.res" %outdir),
         seq = "%s/{sample}/raw/kmerconsensus/{database}.fsa" %outdir,
-        aln = temp("%s/{sample}/raw/kmerconsensus/{database}.aln" %outdir),
-        tool_version = "%s/{sample}/raw/kmerconsensus/{database}_kmaconsensus_version.txt" %outdir,
+        aln = temp("%s/{sample}/raw/kmerconsensus/{database}.aln" %outdir)
     conda:
         ENVS_DIR / "kmeraligner.yaml"
     log:
@@ -68,17 +55,6 @@ rule custom_kmerconsensus:
         cmd="kma -ipe {input.R1} {input.R2} -o $OUTDIR/{wildcards.database} -t_db {params.prefix_db} -nf -ref_fsa"
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
-
-        # 2) create version file with date
-        version_cmd="kma -v"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s\t%s\n' "$version_str" "$date_str" > {output.tool_version}
         """
 
 rule custom_bowtie2alignment:

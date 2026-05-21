@@ -1,5 +1,3 @@
-channels:
-  - conda-forge
-  - bioconda
+name: blast
 dependencies:
-  - blast
+  - bioconda::blast

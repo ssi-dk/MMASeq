@@ -5,8 +5,7 @@ rule mlst:
         assembly = rules.assembly.output.output_assembly
     output:
         mlst_file = "%s/{sample}/raw/mlst/{assembler}_mlst.tsv" %outdir,
-        mlst_tmp = temp("%s/{sample}/raw/mlst/{assembler}_mlst.mp" %outdir),
-        tool_version = "%s/{sample}/raw/mlst/{assembler}_mlst_version.txt" %outdir,
+        mlst_tmp = temp("%s/{sample}/raw/mlst/{assembler}_mlst.mp" %outdir)
     conda:
         ENVS_DIR / "mlst.yaml"
     log:
@@ -23,17 +22,6 @@ rule mlst:
         eval $cmd >> {log.stdout} 2>&1
 
         awk -f {SCRIPTS_DIR}/mlst_header.awk {output.mlst_tmp} > {output.mlst_file}
-
-        # 2) create version file with date
-        version_cmd="mlst --version"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s\t%s\n' "$version_str" "$date_str" > {output.tool_version}
     	"""
 
 # Rule Kleborate:
@@ -111,8 +99,7 @@ rule meningotype:
     input:
         assembly = rules.assembly.output.output_assembly,
     output:
-        meningotype = "%s/{sample}/raw/meningotype/{assembler}_meningotype.tsv" %outdir,
-        tool_version = "%s/{sample}/raw/meningotype/{assembler}_meningotype_version.txt" %outdir,
+        meningotype = "%s/{sample}/raw/meningotype/{assembler}_meningotype.tsv" %outdir
     conda:
         ENVS_DIR / "meningotype.yaml"
     log:
@@ -123,21 +110,10 @@ rule meningotype:
         """
         mkdir -p $(dirname {output.meningotype})
 
-        cmd="meningotype --all {input.assembly} > {output.meningotype} 2> {log.stdout}"
+        cmd="meningotype --all {input.assembly} > {output.meningotype}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
-
-        # 2) create version file with date
-        version_cmd="meningotype --version"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s\t%s\n' "$version_str" "$date_str" > {output.tool_version}
     	"""
 
 
@@ -146,8 +122,7 @@ rule seqsero2:
         R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
         R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
     output:
-        seqsero = "%s/{sample}/raw/seqsero2/SeqSero_result.tsv" %outdir,
-        tool_version = "%s/{sample}/raw/seqsero2/SeqSero_version.txt" %outdir,
+        seqsero = "%s/{sample}/raw/seqsero2/SeqSero_result.tsv" %outdir
     threads: max(1, workflow.cores - 1 - (workflow.cores - 1) % 2)
     priority: 1
     conda:
@@ -165,17 +140,6 @@ rule seqsero2:
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
-
-        # 2) create version file with date
-        version_cmd="SeqSero2_package.py -v"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s\t%s\n' "$version_str" "$date_str" > {output.tool_version}
         """
 
 rule sistr:
@@ -185,8 +149,7 @@ rule sistr:
     output:
         sistr_tab = "%s/{sample}/raw/sistr/{assembler}_sistr.tab" %outdir,
         gmlst_profile = "%s/{sample}/raw/sistr/{assembler}_cgmlst_profiles.csv" %outdir,
-        allele_results = "%s/{sample}/raw/sistr/{assembler}_allele-results.json" %outdir,
-        tool_version = "%s/{sample}/raw/sistr/{assembler}_sistr_version.txt" %outdir,
+        allele_results = "%s/{sample}/raw/sistr/{assembler}_allele-results.json" %outdir
     threads: max(1, workflow.cores - 1 - (workflow.cores - 1) % 2)
     priority: 1
     conda:
@@ -203,17 +166,6 @@ rule sistr:
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
-        
-        # 2) create version file with date
-        version_cmd="sistr --version 2>/dev/null"
-        date_cmd="date -I"
-            
-        echo -e "Executing command:\n$version_cmd\n$date_cmd\n" >> {log.stdout}
-
-        version_str="$(eval "$version_cmd" 2>> {log.stdout})"
-        date_str="$(eval "$date_cmd" 2>> {log.stdout})"
-
-        printf '%s\t%s\n' "$version_str" "$date_str" > {output.tool_version}
         """
 
 
@@ -225,7 +177,7 @@ rule serotypefinder:
     output:
         serotype = "%s/{sample}/raw/serotypefinder/results_tab.tsv" %outdir,
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "serotypefinder.yaml"
     log:
         stdout = "%s/{sample}/serotypefinder.log" %logdir
     message:

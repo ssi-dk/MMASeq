@@ -3,7 +3,7 @@ rule setup_PlasmidFinder:
         database = directory("%s/plasmidfinder_db" %database_dir),
         version_db = "%s/plasmidfinder_db/PlasmidFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "plasmidfinder.yaml"
     log:
         stdout = "%s/Databases/setup_PlasmidFinder.log" %logdir
     message:
@@ -45,7 +45,7 @@ rule setup_ResFinder:
         database = directory("%s/resfinder_db" %database_dir),
         version_db = "%s/resfinder_db/ResFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "resfinder.yaml"
     log:
         stdout = "%s/Databases/setup_ResFinder.log" %logdir
     message:
@@ -87,7 +87,7 @@ rule setup_PointFinder:
         database = directory("%s/pointfinder_db" %database_dir),
         version_db = "%s/pointfinder_db/PointFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "resfinder.yaml"
     log:
         stdout = "%s/Databases/setup_PointFinder.log" %logdir
     message:
@@ -130,7 +130,7 @@ rule setup_DisinFinder:
         database = directory("%s/disinfinder_db" %database_dir),
         version_db = "%s/disinfinder_db/DisinFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "resfinder.yaml"
     log:
         stdout = "%s/Databases/setup_DisinFinder.log" %logdir
     message:
@@ -172,7 +172,7 @@ rule setup_VirulenceFinder:
         database = directory("%s/virulencefinder_db" %database_dir),
         version_db = "%s/virulencefinder_db/VirulenceFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "virulencefinder.yaml"
     log:
         stdout = "%s/Databases/setup_VirulenceFinder.log" %logdir
     message:
@@ -214,7 +214,7 @@ rule setup_SerotypeFinder:
         database = directory("%s/serotypefinder_db" %database_dir),
         version_db = "%s/serotypefinder_db/SerotypeFinder_version.txt" %database_dir
     conda:
-        ENVS_DIR / "CGE_finders.yaml"
+        ENVS_DIR / "serotypefinder.yaml"
     log:
         stdout = "%s/Databases/setup_SerotypeFinder.log" %logdir
     message:
@@ -472,7 +472,7 @@ rule setup_custom_samtool_index:
         source = "%s/samtools/{database}.fasta" %database_dir, 
         index = "%s/samtools/{database}.fasta.fai" %database_dir
     conda:
-        ENVS_DIR / "htslib.yaml"
+        ENVS_DIR / "samtools.yaml"
     log:
         stdout = "%s/Databases/setup_custom_samtool_index_{database}.log" %logdir
     message:

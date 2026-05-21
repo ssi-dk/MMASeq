@@ -1,7 +1,6 @@
-channels:
-  - conda-forge
-  - bioconda
+name: kleborate
 dependencies:
-  - python=3.9
-  - kleborate
-  - ezclermont
+  - bioconda::kleborate
+  - bioconda::ezclermont
+  - conda-forge::biopython
+  - conda-forge::python=3.9

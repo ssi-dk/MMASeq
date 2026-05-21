@@ -1,5 +1,3 @@
-channels:
-  - conda-forge
-  - bioconda
+name: minimap2
 dependencies:
-  - minimap2
+  - bioconda::minimap2
