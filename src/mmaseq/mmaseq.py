@@ -355,7 +355,7 @@ def link_assemblies(
 
             # Define assembly type from sample configurations
             for assembler in assemblers:
-                assembly_dir = outdir / sample / assembler
+                assembly_dir = outdir / sample / "raw" / assembler
                 destination = assembly_dir / f"{sample}.fasta"
 
                 # Ensure output assembly results directory exists

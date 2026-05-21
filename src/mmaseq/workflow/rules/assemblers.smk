@@ -79,7 +79,7 @@ rule shovill:
 
 rule assembly:
     input:
-        input_assembly = "%s/{sample}/{assembler}/{sample}.fasta" %outdir
+        input_assembly = "%s/{sample}/raw/{assembler}/{sample}.fasta" %outdir
     output:
         output_assembly = "%s/{sample}/Assemblies/{sample}_{assembler}.fasta" %outdir
     log:
