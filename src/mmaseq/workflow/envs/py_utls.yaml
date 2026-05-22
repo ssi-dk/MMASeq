@@ -1,3 +1,4 @@
+name: scripts
 channels:
   - conda-forge
   - bioconda

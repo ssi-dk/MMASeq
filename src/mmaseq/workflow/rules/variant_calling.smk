@@ -6,7 +6,7 @@ rule samtools_sam_filtration:
     output:
         bam = temp("%s/{sample}/raw/samtools/{database}_filtered.bam" %outdir)
     conda:
-        ENVS_DIR / "htslib.yaml"
+        ENVS_DIR / "samtools.yaml"
     log:
         stdout = "%s/{sample}/custom_kmeralignment_samtools_filtration_{database}.log" %logdir
     message:
@@ -28,7 +28,7 @@ rule samtools_bam_filtration:
     output:
         bam = temp("%s/{sample}/raw/samtools/{database}_filtered.bam" %outdir)
     conda:
-        ENVS_DIR / "htslib.yaml"
+        ENVS_DIR / "samtools.yaml"
     log:
         stdout = "%s/{sample}/custom_kmeralignment_samtools_filtration_{database}.log" %logdir
     message:
@@ -51,7 +51,7 @@ rule samtools_sort:
         bam_sort = temp("%s/{sample}/raw/samtools/{database}_sorted.bam" %outdir),
         index = temp("%s/{sample}/raw/samtools/{database}_sorted.bam.bai" %outdir)
     conda:
-        ENVS_DIR / "htslib.yaml"
+        ENVS_DIR / "samtools.yaml"
     log:
         stdout = "%s/{sample}/samtools_sort_{database}.log" %logdir
     message:
@@ -78,7 +78,7 @@ rule bcftools_pileup:
         pileup = temp("%s/{sample}/raw/bcftools/{database}_pileup.bcf" %outdir),
         index = temp("%s/{sample}/raw/bcftools/{database}_pileup.bcf.csi" %outdir)
     conda:
-        ENVS_DIR / "htslib.yaml"
+        ENVS_DIR / "bcftools.yaml"
     log:
         stdout = "%s/{sample}/bcftools_pileup_{database}.log" %logdir
     message:
@@ -107,7 +107,7 @@ rule bcftools_filter_indels:
         indels = temp("%s/{sample}/raw/bcftools/{database}_pileup_indels.bcf" %outdir),
         index = temp("%s/{sample}/raw/bcftools/{database}_pileup_indels.bcf.csi" %outdir)
     conda:
-        ENVS_DIR / "htslib.yaml"
+        ENVS_DIR / "bcftools.yaml"
     log:
         stdout = "%s/{sample}/bcftools_filter_indels_{database}.log" %logdir
     message:
@@ -134,7 +134,7 @@ rule bcftools_variant_call:
         variants = temp("%s/{sample}/raw/bcftools/{database}_call_variants.bcf" %outdir),
         index = temp("%s/{sample}/raw/bcftools/{database}_call_variants.bcf.csi" %outdir)
     conda:
-        ENVS_DIR / "htslib.yaml"
+        ENVS_DIR / "bcftools.yaml"
     log:
         stdout = "%s/{sample}/bcftools_variant_call_{database}.log" %logdir
     message:

@@ -1,8 +1,4 @@
-channels:
-  - conda-forge
-  - bioconda
+name: kma
 dependencies:
-  - python=3.9
-  - kma
-  - curl
- 
+  - bioconda::kma
+  - conda-forge::curl

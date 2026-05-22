@@ -1,8 +1,5 @@
-channels:
-  - conda-forge
-  - bioconda
+name: meningotype
 dependencies:
-  - python=3.10
-  - meningotype
-  - biopython=1.83
+  - bioconda::meningotype=0.8.5
+  - conda-forge::biopython=1.83
   - conda-forge::setuptools<82.0.0

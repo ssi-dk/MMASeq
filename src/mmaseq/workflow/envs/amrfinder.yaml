@@ -1,6 +1,3 @@
-channels:
-  - conda-forge
-  - bioconda
+name: ncbi-amrfinderplus
 dependencies:
-  - ncbi-amrfinderplus
-  - curl
+  - bioconda::ncbi-amrfinderplus

@@ -1,5 +1,3 @@
-channels:
-  - conda-forge
-  - bioconda
+name: shovill
 dependencies:
-  - shovill
+  - bioconda::shovill

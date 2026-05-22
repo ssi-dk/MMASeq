@@ -1,9 +1,5 @@
-channels:
-  - conda-forge
-  - bioconda
-channel_priority: strict
+name: sistr_cmd
 dependencies:
-  - python=3.10
-  - numpy>=1.11.1,<2.0
   - bioconda::sistr_cmd
+  - conda-forge::numpy>=1.11.1,<2.0
   - conda-forge::setuptools<82.0.0

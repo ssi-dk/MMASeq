@@ -5,7 +5,7 @@ rule spades:
     output:
         assembly = "%s/{sample}/raw/spades/{sample}.fasta" %outdir
     conda:
-        ENVS_DIR / "shovill.yaml"
+        ENVS_DIR / "spades.yaml"
     log:
         stdout = "%s/Assemblies/{sample}_spades.log" %logdir
     threads: max(1, workflow.cores - 1 - (workflow.cores - 1) % 2)
@@ -32,7 +32,7 @@ rule skesa:
     output:
         assembly = "%s/{sample}/raw/skesa/{sample}.fasta" %outdir
     conda:
-        ENVS_DIR / "shovill.yaml"
+        ENVS_DIR / "skesa.yaml"
     log:
         stdout = "%s/Assemblies/{sample}_Skesa.log" %logdir
     threads: max(1, workflow.cores - 1 - (workflow.cores - 1) % 2)

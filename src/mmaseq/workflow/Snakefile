@@ -80,6 +80,8 @@ rule copy:
         raw = all_raw_result_filepaths
     output:
         files = all_result_filepaths
+    log:
+        stdout = "%s/copy.log" %logdir
     message:
         "[copy_results] Copying results files"
     shell:
@@ -88,20 +90,32 @@ rule copy:
             RAWDIR=$(dirname $FILE)
             NEWDIR="${{RAWDIR//\\/raw\\//\\/}}"
             
-            echo "Copying $FILE to $NEWDIR/"
+            echo "Copying $FILE to $NEWDIR/" > {log.stdout} 2>&1
             mkdir -p $NEWDIR
             cp -f $FILE $NEWDIR/
         done
         """
 
+rule versions:
+    input:
+        deploy_dir = deploy_dir
+    output:
+        versions_file = outdir / "Conda_tools_version.tsv"
+    script:
+        SCRIPTS_DIR / "versions.py"
+
+
 
 rule table:
     input:
-        files = rules.copy.output.files
+        files = rules.copy.output.files,
+        versions = rules.versions.output.versions_file
     params:
         results_dict = all_result_files
     output:
         long = "%s/results_long.tsv" %outdir
+    log:
+        stdout = "%s/table.log" %logdir
     message:
         "[keep]: Generating long table"
     run:
@@ -113,6 +127,8 @@ rule clean:
     input:
         long = rules.table.output.long,
         raw = rules.copy.input.raw
+    log:
+        stdout = "%s/clean.log" %logdir
     message:
         "[clean_results]: Removing intermediate folders"
     shell:
@@ -120,7 +136,7 @@ rule clean:
         for DIR in $(dirname {input.raw}); do
            RAW=$(dirname $DIR)
            if [ -d "$RAW" ]; then 
-               echo "Removing $RAW"
+               echo "Removing $RAW" > {log.stdout} 2>&1
                rm -r $RAW
            fi
         done

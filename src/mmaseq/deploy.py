@@ -135,7 +135,7 @@ def extract_hosts(urls):
     return hosts
 
 
-def connect_ftp(host, timeout = 45):
+def connect_ftp(host, timeout = 15):
     logger.trace(f"Connecting to {host}")
 
     ftp = ftplib.FTP(host, timeout = timeout)
