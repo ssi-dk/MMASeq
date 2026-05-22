@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "MMAseq"
-version = "0.9.4"
+version = "1.0.0"
 description = "Mixed Microbial Analysis on Sequencing data"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 license = { file = "LICENSE" }
 dependencies = [
     "snakemake",
@@ -42,4 +42,3 @@ exclude = [
 mmadeploy = "mmaseq.deploy:launcher"
 mmacreate = "mmaseq.create:launcher"
 mmaseq = "mmaseq.mmaseq:launcher"
-
