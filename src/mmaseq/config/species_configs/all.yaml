@@ -22,7 +22,7 @@ cdiff_repeat_identifier:
     assemblers: shovill
 
 amrfinder:
-    assemblers: shovill
+    assemblers: [shovill, skesa, spades]
     options: ""
 
 samtools:

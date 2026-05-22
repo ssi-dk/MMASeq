@@ -12,4 +12,4 @@ mlst:
     assemblers: shovill
 
 meningotype:
-    assemblers: shovill
+    assemblers: [shovill, skesa, spades]

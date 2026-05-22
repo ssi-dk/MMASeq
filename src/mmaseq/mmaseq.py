@@ -185,13 +185,11 @@ def resolve_path(path, samplesheet_file):
 
     else:
         # Abort if file path was unsolvable
-        logger.error(
-            f"Unable to resolve sample path: {path}.\n"
-            f"- Resolve the paths in your samplesheet {samplesheet_file} "
-            "and try again.\nAborting!"
+        logger.warning(
+            f"Unable to resolve sample path: {path}. Skipping!"
         )
-        sys.exit(1)
-
+        absolute = path
+        
     return absolute
 
 
