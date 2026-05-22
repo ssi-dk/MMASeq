@@ -120,7 +120,7 @@ rule table:
         "[keep]: Generating long table"
     run:
         all_results_long = results_aggregator.generate_long_results(params.results_dict)
-        all_results_long.to_csv(output.long, sep = "\t")
+        all_results_long.to_csv(output.long, sep = "\t", index = False)
 
 
 rule clean:
