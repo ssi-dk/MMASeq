@@ -1,0 +1,6 @@
+name: kleborate
+dependencies:
+  - bioconda::kleborate
+  - bioconda::ezclermont
+  - conda-forge::biopython
+  - conda-forge::python=3.9
