@@ -16,7 +16,6 @@ dependencies = [
 authors = [
     {name = "Kasper Thystrup Karstensen", email = "kathka@gmail.com"},
     {name = "Simone Scrima", email = "simonescrima@gmail.com"},
-    {name = "Rasmus Amund Henriksen"}
 ]
 maintainers = [
     {name = "Kasper Thystrup Karstensen", email = "kathka@gmail.com"},
@@ -32,7 +31,7 @@ Repository = "https://github.com/ssi-dk/MMASeq"
 packages = ["src/mmaseq", "src/mmaseq/utils"]
 
 [tool.hatch.build.targets.sdist]
-only-include = ["src/mmaseq", "README.md", "LICENSE", "pyproject.toml", "version_guide.md"]
+only-include = ["src/mmaseq", "README.md", "LICENSE", "pyproject.toml"]
 
 [tool.hatch.build]
 exclude = [
