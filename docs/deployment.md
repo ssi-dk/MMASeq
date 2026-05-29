@@ -2,21 +2,19 @@
 
 ## Installation Guide
 
-The latest version of **MMASeq** can be installed using [Conda](#conda-installation), [pip](#pip), or directly [from source](#install-from-source).
+The latest version of **MMASeq** can be installed using [Conda](#conda-installation) or [micromamba](#conda-installation), or directly [from source](#install-from-source). In the case of installation from source, conda or micromamba is still required to create the necessary environments for the pipeline execution. 
 
 !!! info
-    MMASeq currently supports **Linux** and **macOS** only.
+        MMASeq currently supports **Linux** and similar UNIX-like environments. **macOS** is currently under testing and is not fully supported yet.
 
 ---
 
-### <a name="conda-installation"></a> Conda Installation
+### <a name="conda-installation"></a> Conda or MicromambaInstallation
 
-Because the workflow is implemented in **Snakemake**, and Snakemake does **not** fully support micromamba, installation via **Conda** is the recommended approach.
-
-To create a clean, isolated environment:
+Create a clean, isolated environment:
 
 ```bash
-conda create -n mmaseq -c conda-forge -c bioconda mmaseq
+conda create -n mmaseq -c conda-forge -c bioconda 
 ```
 
 Activate the enviroment
@@ -25,23 +23,27 @@ Activate the enviroment
 conda activate mmaseq
 ```
 
-### <a name="pip"></a> pip
-
-You can install the latest stable release of MMASeq via pip:
+```bash
+PLACEHOLDER FOR CONDA INSTALLATION INSTRUCTION
+```
+In a similar manner one can use micromamba to create and manage the environment:
 
 ```bash
-pip install mmaseq 
+micromamba create -n mmaseq -c conda-forge -c bioconda
+micromamba activate mmaseq
+PLACEHOLDER FOR MICROMAMBA INSTALLATION INSTRUCTION
 ```
 
 ### <a name="Install from source"></a> Install from source  
 
-This section is for user who wants to install **MMASeq** directly from source (e.g., for reproducibility or to debug a release).
-However, the user must ensure to have the **Snakemake >=9.12.0** dependency is installed in the environment. 
+This section is for user who wants to install **MMASeq** directly from source (e.g., for reproducibility or to debug a release) or to work on a development branch. In this case, the user needs to clone the repository and install the package using pip. Before installing the package, it is recommended to create a clean conda or micromamba environment to avoid any dependency conflicts. The following commands can be used to set up the environment and install the package (using conda,but the same can be done with micromamba):
 
 ```bash
-conda create -n mmaseq -c conda-forge -c bioconda "snakemake>=9.12.0"
-pip install pandas
-git clone https://github.com/ssi-dk/ssi_analysis_utility
+conda create -n mmaseq -c conda-forge -c bioconda 
+conda activate mmaseq 
+conda install conda-forge::pip bioconda::snakemake conda-forge::conda conda-forge::pandas
+git clone https://github.com/ssi-dk/MMASeq.git
+cd MMASeq
 pip install . 
 ```
 
@@ -50,13 +52,17 @@ If the user wants to work on a development branch:
 ```bash
 conda create -n mmaseq -c conda-forge -c bioconda "snakemake>=9.12.0"
 pip install pandas
-git clone https://github.com/ssi-dk/ssi_analysis_utility
-pip install -e . 
-cd ssi_analysis_utility
+git clone https://github.com/ssi-dk/MMASeq.git
+cd MMASeq
 git switch dev    # work on the develop branch
 git checkout -b new-feature-branch  # Create a new branch from dev to work on new changes
+pip install .
 ``` 
 
+!!! info
+    In some systems the conda executable command might not be available  after installation for the environment or conflicting with other conda installations on different environments. In this case, the user can first try to check the executable path using the following command `which conda`.
+    If the command returns a path to the conda executable pointing to the correct environment location e.g `/home/user/miniconda3/envs/mmaseq/bin/conda`, then the conda command should work as expected and consequently the pipeline. However, if the command returns a path pointing to a different location (e.g., `/home/user/miniconda3/bin/conda`), it indicates that the conda command is not correctly linked to the environment's bin directory. In this case, the user can try to add the correct path to the conda executable to their system's PATH variable or use the full path to the conda executable prior to run the pipeline. 
+```bash
 
 
 ## Running the workflow
