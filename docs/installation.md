@@ -159,7 +159,7 @@ OPTIONS
 ### Final output
 
 All the workflow results are stored in the output directory specified by `--outdir`. 
-The final output is a file named `all_results.tsv`. This file is a concatenated file of all the collected output that can be further processed by the user.
+The final output is a file named `results_long.tsv`. This file is a concatenated file of all the collected output that can be further processed by the user.
 It is in the following longtable format:
 
 | sample_name | tool | filename | organism | row_index | row | value |
