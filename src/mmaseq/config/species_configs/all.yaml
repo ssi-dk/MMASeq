@@ -73,3 +73,5 @@ seqsero2: true
 sistr:
   assemblers: shovill
 
+kmeraligner:
+    database : [vancomycin, vancomycin_operon]

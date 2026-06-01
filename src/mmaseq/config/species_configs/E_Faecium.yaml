@@ -15,4 +15,5 @@ mlst:
 LREfinder:
     database : [elmDB]
 
-
+kmeraligner:
+    database : [vancomycin, vancomycin_operon]
