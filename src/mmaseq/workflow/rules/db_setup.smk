@@ -292,7 +292,7 @@ rule setup_AMRFinder:
 
         # 2) create version file with date
         modified_cmd="cat \"{output.database}/version.txt\""
-        version_cmd="amrfinder_update -v"
+        version_cmd="amrfinder_update --version"
         date_cmd="date -I"
         
         echo -e "Executing command:\n$modified_cmd\n$version_cmd\n$date_cmd\n" >> {log.stdout}
