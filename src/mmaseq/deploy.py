@@ -55,6 +55,7 @@ def parse_deploy():
         "--retries",
         dest="retries",
         default=3,
+        type=int,
         help=(
             "Amount of attempts allowed for each file, when downloading the "
             "dataset. (Default: %(default)s) Setting this to 0 will lead to "
