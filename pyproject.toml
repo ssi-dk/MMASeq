@@ -28,7 +28,7 @@ Documentation = "https://ssi-dk.github.io/MMASeq"
 Repository = "https://github.com/ssi-dk/MMASeq"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mmaseq", "src/mmaseq/utils"]
+packages = ["src/mmaseq"]
 
 [tool.hatch.build.targets.sdist]
 only-include = ["src/mmaseq", "README.md", "LICENSE", "pyproject.toml"]
