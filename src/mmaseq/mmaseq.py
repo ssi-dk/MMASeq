@@ -256,7 +256,7 @@ def create_config(samplesheet_file,
                   ignore_assemblies,
                   force,
                   deploy_dir,
-                  spe_configs_dir,
+                  species_configs,
                   verbosity
                   ):
 
@@ -266,7 +266,7 @@ def create_config(samplesheet_file,
                   f"ignore_assemblies = {ignore_assemblies}\n"
                   f"force = {force}\n"
                   f"deploy_dir = {deploy_dir}\n"
-                  f"spe_configs_dir = {spe_configs_dir}\n"
+                  f"species_configs = {species_configs}\n"
                   f"verbosity: {verbosity}"
                   ")"))
 
@@ -291,7 +291,7 @@ def create_config(samplesheet_file,
     config = {
         "samplesheet": str(samplesheet_file),
         "deploy_dir": str(deploy_dir),
-        "spe_configs_dir": str(spe_configs_dir),
+        "species_configs": str(species_configs),
         "ignore_assemblies": ignore_assemblies,
         "outdir": str(outdir),
         "verbosity": int(verbosity)
@@ -422,7 +422,7 @@ def create_command(threads,
     if force:
         additionals += "--forceall "
            
-    target_rule = "table "
+    target_rule = "copy "
     
     if clean:
         target_rule = "clean "
@@ -485,11 +485,11 @@ def mmaseq(args):
         samplesheet_file = resolve_samplesheet_paths(samplesheet_file, outdir)
         logger.info("Resolved the file paths stated in the samplesheet")
 
-    spe_configs_dir = SPE_CONFIGS
+    species_configs = SPE_CONFIGS
     if custom:
-        spe_configs_dir = deploy_dir / "species_configs"
+        species_configs = deploy_dir / "species_configs"
 
-        if not spe_configs_dir.exists():
+        if not species_configs.exists():
             logger.error((
                 f"Species configuration folder not detected in {deploy_dir}. "
                 f"To generate your own species configurations folder, run: \n"
@@ -505,7 +505,7 @@ def mmaseq(args):
                            ignore_assemblies,
                            force,
                            deploy_dir,
-                           spe_configs_dir,
+                           species_configs,
                            args.verbosity
                            )
 
@@ -515,7 +515,7 @@ def mmaseq(args):
     else:
         logger.info("Assemblies in samplesheet will be used to skip "
                     "assembly steps in the pipeline, where applicable!")
-        link_assemblies(samplesheet_file, spe_configs_dir, outdir, ignore_assemblies)
+        link_assemblies(samplesheet_file, species_configs, outdir, ignore_assemblies)
 
 
     logger.debug("Creating pipeline command")

@@ -16,9 +16,9 @@ def inspect_read_types(sample, samplesheet):
     type = None
 
     if not pd.isna(read1_from_sheet) and Path(read1_from_sheet).exists():
-        type = "SR"
+        type = "long"
         if not pd.isna(read2_from_sheet) and Path(read2_from_sheet).exists():
-            type = "PR"
+            type = "paired"
     elif not pd.isna(read2_from_sheet) and Path(read2_from_sheet).exists():
         logger.error("Read 1 does not exist but read 2 does, is your samplesheet corrupt?")
         sys.exit(0)

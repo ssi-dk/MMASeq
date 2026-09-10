@@ -44,14 +44,21 @@ class Input:
 
 @dataclass
 class Module:
+    name: str
     options: str = ""
     database: list[str] = field(default_factory=list)
     assembler: list[str] = field(default_factory=list)
     ignore: bool = False
     reads: bool = False
     config: dict = field(default_factory=dict)
-    raw_results: Path | None = None
-    results_final: Path | None = None
+    raw: Path | None = None
+    results: Path | None = None
+
+    def status(self):
+        if self.results.exists():
+            return f"{self.name}: Success"
+
+        return f"{self.name}: Missing"
 
 
 @dataclass
@@ -62,49 +69,71 @@ class Sample:
     outpath: Path
     modules: dict[str, Module] = field(default_factory = dict)
 
-
-    def module(self, name: str) -> Module | None:
-        return self.modules.get(name)
-
-
-    # def show_read1(self):
-    #     return self.inputs.read1
+    def read1(self):
+        return self.inputs.read1
     
 
-    # def show_read2(self):
-    #     return self.inputs.read2
+    def read2(self):
+        return self.inputs.read2
 
     
-    # def show_assembly(self):
-    #     return self.inputs.assembly
+    def assembly(self):
+        return self.inputs.assembly
 
 
-    # def show_module(self, module):
-    #     return self.modules.get(module)
+    def options(self, module):
+        if module in self.modules:
+            return self.modules.get(module).options
+
+        return ''
+
+    def configs(self, module, section):
+        if module in self.modules:
+            return self.modules.get(module).config.get(section)
 
 
-    # def show_options(self, module):
-    #     return self.show_module(module).options
+    def raw(self, module):
+        if module in self.modules.keys():
+            return self.modules.get(module).raw
+
+        return ''
 
 
-    # def show_database(self, module):
-    #     return self.show_module(module).database
+    def results(self, module):
+        if module in self.modules.keys():
+            return self.modules.get(module).results
+
+        return ''
 
 
-    # def show_assembler(self, module):
-    #     return self.show_module(module).assembler
+    def all_raw(self):
+        all_modules = self.modules.keys()
+
+        all_raw = []
+
+        for module in all_modules:
+            module = self.modules.get(module)
+
+            if module.raw:
+                for raw in module.raw:
+                    all_raw.append(raw)
+
+        return all_raw
 
 
-    # def show_config(self, module):
-    #     return self.show_module(module).config
+    def all_results(self):
+        all_modules = self.modules.keys()
 
+        all_results = []
 
-    # def show_raw_results(self, module):
-    #     return self.show_module(module).raw_results
+        for module in all_modules:
+            module = self.modules.get(module)
 
+            if module.results:
+                for res in module.results:
+                    all_results.append(res)
 
-    # def show_results_final(self, module):
-    #     return self.show_module(module).results_final
+        return all_results
 
 
     def populate_modules(self):
@@ -122,7 +151,7 @@ class Sample:
             configs_raw = safe_load(cfg_read)
 
         for module, components in configs_raw.items():
-            opt = check_config_fields(components = components, field = "options", default = "")
+            opt = check_config_fields(components = components, field = "options", default = '')
             db = as_list(check_config_fields(components = components, field = "database", default = []))
             asm = as_list(check_config_fields(components = components, field = "assembler", default = []))
             ignr = check_config_fields(components = components, field = "ignore", default = False)
@@ -135,7 +164,7 @@ class Sample:
             }
 
             # Determine output file exts
-            exts = determine_outfile_exts(database = db, assembly = asm)
+            exts = determine_outfile_exts(reads = rds, database = db, assembly = asm)
 
             # Determine sample read type
             read_type = self.inputs.read_type
@@ -144,22 +173,22 @@ class Sample:
             if rds and read_type:
                 read_str = f"{read_type}/"
             
-            raw_results = None
-            results_final = None
+            raw = None
+            results = None
             if not ignr:
-                raw_results = [f"{self.outpath}/{read_str}{module}/{module}{ext}" for ext in exts]
-                results_final = [f"{raw_res.replace('/raw', '')}" for raw_res in raw_results]
-
+                raw = [f"{self.outpath}/raw/{read_str}{module}/{module}{ext}" for ext in exts]
+                results = [f"{self.outpath}/{read_str}{module}/{module}{ext}" for ext in exts]
 
             mod = Module(
+                name = module,
                 options = opt,
                 database = db,
                 assembler = asm,
                 ignore = ignr,
                 reads = rds,
                 config = config,
-                raw_results = raw_results,
-                results_final = results_final
+                raw = raw,
+                results = results
             )
 
             modules.update({module : mod})
@@ -189,7 +218,10 @@ def as_list(value):
     return [value]
 
 
-def determine_outfile_exts(database, assembly):
+def determine_outfile_exts(reads, database, assembly):
+
+    if reads:
+        assembly = None
 
     db_strings = [f"_{db}" for db in database] if database else []
     asm_strings = [f"_{asm}" for asm in assembly] if assembly else []
@@ -213,7 +245,13 @@ def determine_outfile_exts(database, assembly):
     return [f"{asm}.tsv" for asm in asm_strings]
 
 
-def import_dataset(samplesheet, config_dir, outdir):
+def import_dataset(samplesheet_path, config_dir, outdir):
+
+    samplesheet = pd.read_csv(
+        samplesheet_path,
+        sep='\t'
+    ).set_index("sample_name")
+
     samples = {}
     for sample in samplesheet.index:
         read1 = samplesheet.at[sample, "read1"]
@@ -227,32 +265,24 @@ def import_dataset(samplesheet, config_dir, outdir):
         if not config_file.exists():
             raise FileNotFoundError(f"Configuration file not found - Check your samplesheet: {config_file}.")
 
-        smpl = Sample(name = sample, config_file = config_file, inputs = Input(read1, read2, assembly), outpath = outdir / sample / "raw")
+        smpl = Sample(name = sample, config_file = config_file, inputs = Input(read1, read2, assembly), outpath = outdir / sample).populate_modules()
 
-        smpl.populate_modules()
         samples.update({sample: smpl})
 
 
     return samples
 
 
-# # Testing    
+def list_files(samples, raw = False):
+    files = []
+    for sample_id in samples.keys():
+        sample = samples.get(sample_id)
 
-# samplesheet = pd.read_csv(
-#     "/home/cucumbergebt/micromamba/envs/MMAseq/lib/python3.14/site-packages/mmaseq/Deploy/MMAseq_Test/samplesheet_test_resolved.tsv",
-#     sep = "\t",
-#     na_filter=False
-# ).set_index(
-#     "sample_name"
-# )
+        if raw:
+            for raw_file in sample.all_raw():
+                files.append(raw_file)
+        else:
+            for res_file in sample.all_results():
+                files.append(res_file)
 
-# config_dir = Path("/home/cucumbergebt/micromamba/envs/MMAseq/lib/python3.14/site-packages/mmaseq/config/species_configs")
-
-# outdir = Path("/home/cucumbergebt/micromamba/envs/MMAseq/lib/python3.14/site-packages/mmaseq/Deploy/MMAseq_Test")
-
-# samples = import_dataset(samplesheet, config_dir, outdir)
-
-# sample = samples.get("Ec_Test")
-# print(f"Sample {sample.name} with read types {sample.inputs.read_type} with {sample.inputs.read1} and maybe {sample.inputs.read2}")
-
-# sample.module("amrfinder").raw_results
+    return files
