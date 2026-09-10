@@ -300,5 +300,3 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", type=int, choices=[0, 1], default=1)
     args = parser.parse_args()
     main(args)
-
-# python KMAfilter.py --KMA_res ../../examples/Results/SRR10518319/Cdiff_KMA_Toxin/SRR10518319.res --Gene_list tcdA tcdB tcdC cdtAB --organism "Clostridioides difficile" --sample_id SRR10518319 --output ../../examples/Results/SRR10518319/KMA.tsv

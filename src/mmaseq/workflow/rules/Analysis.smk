@@ -14,7 +14,7 @@ rule assembly:
         """
         mkdir -p $(dirname {output.assembly})
 
-        cmd="rsync -av {input.assembly} {output.assembly}"
+        cmd="cp {input.assembly} {output.assembly}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1 
@@ -27,7 +27,7 @@ rule blastn:
         assembly = rules.assembly.output.assembly,
         database = rules.fetch_custom_blast_database.output.source
     params:
-        options = lambda wc: sample_configs[wc.sample]["blastn"]["options"]
+        options = lambda wc: sample(wc).options("blastn")
     output:
         results = f"{outdir}/{{sample}}/raw/blastn/blastn_{{database}}_{{assembler}}.tsv"
     conda:
@@ -57,7 +57,7 @@ rule minimap2:
         assembly = rules.assembly.output.assembly,
         database = rules.fetch_genbank.output.fasta
     params:
-        options = lambda wc: sample_configs[wc.sample]["minimap2"]["options"]
+        options = lambda wc: sample(wc).options("minimap2")
     output:
         results = temp(f"{outdir}/{{sample}}/raw/minimap2/minimap2_{{assembler}}_{{database}}.sam")
     conda:
@@ -70,7 +70,7 @@ rule minimap2:
         r"""
         mkdir -p $(dirname {output.results})
 
-        cmd="minimap2 {params.options} {input.database} {input.assembly} -o {output.results}"
+        cmd="minimap2 {input.database} {input.assembly} -o {output.results} {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -85,7 +85,7 @@ rule amrfinder:
         assembly = rules.assembly.output.assembly,
         database = rules.setup_amrfinder.output.database
     params:
-        options = lambda wc: sample_configs[wc.sample]["amrfinder"]["options"]
+        options = lambda wc: sample(wc).options("amrfinder")
     output:
         results = f"{outdir}/{{sample}}/raw/amrfinder/amrfinder_{{assembler}}.tsv"
     conda:
@@ -99,7 +99,7 @@ rule amrfinder:
         OUTDIR=$(dirname {output.results})
         mkdir -p $OUTDIR
         
-        cmd="amrfinder --nucleotide {input.assembly} --database {input.database} {params.options} --output {output.results}"
+        cmd="amrfinder --nucleotide {input.assembly} --database {input.database} --output {output.results} {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -109,6 +109,8 @@ rule amrfinder:
 rule mlst:
     input:
         assembly = rules.assembly.output.assembly
+    params:
+        options = lambda wc: sample(wc).options("mlst")
     output:
         results = f"{outdir}/{{sample}}/raw/mlst/mlst_{{assembler}}.tsv",
         mlst_tmp = temp(f"%s/{{sample}}/raw/mlst/mlst_{{assembler}}.tmp")
@@ -122,7 +124,7 @@ rule mlst:
         """
         mkdir -p $(dirname {output.results})
 
-        cmd="mlst {input.assembly} --label $(basename {input.assembly} .fasta) > {output.mlst_tmp}"
+        cmd="mlst {input.assembly} --label $(basename {input.assembly} .fasta) {params.options} > {output.mlst_tmp}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -135,10 +137,10 @@ rule kleborate:
     input:
         assembly = rules.assembly.output.assembly,
         version_db = rules.setup_kleborate_amrfinder.output.version_db
+    params:
+        options = lambda wc: sample(wc).options("kleborate")
     output:
         results = f"{outdir}/{{sample}}/raw/kleborate/kleborate_{{assembler}}.tsv"
-    params:
-        options = lambda wildcards: sample_configs[wildcards.sample]["kleborate"]["options"]
     conda:
         ENVS_DIR / "kleborate.yaml"
     log:
@@ -179,7 +181,9 @@ rule kleborate:
 
 rule meningotype:
     input:
-        assembly = rules.assembly.output.assembly,
+        assembly = rules.assembly.output.assembly
+    params:
+        options = lambda wc: sample(wc).options("meningotype")
     output:
         results = f"{outdir}/{{sample}}/raw/meningotype/meningotype_{{assembler}}.tsv"
     conda:
@@ -193,7 +197,7 @@ rule meningotype:
         OUTDIR=$(dirname {output.results})
         mkdir -p $OUTDIR
 
-        cmd="meningotype --all {input.assembly} > {output.results}"
+        cmd="meningotype --all {input.assembly} {params.options} > {output.results}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -205,6 +209,7 @@ rule sistr:
         assembly = rules.assembly.output.assembly,
         serovarlist = rules.fetch_senterica_serovar.output.source
     params:
+        options = lambda wc: sample(wc).options("sistr"),
         tmp_results = f"sistr_{{assembler}}.tsv.tab"
     output:
         results = f"{outdir}/{{sample}}/raw/sistr/sistr_{{assembler}}.tsv",
@@ -223,7 +228,7 @@ rule sistr:
         OUTDIR=$(dirname {output.results})
         mkdir -p $OUTDIR
 
-        cmd="sistr -f tab --qc -t {threads} -l {input.serovarlist} --cgmlst-profiles {output.cgmlst} --alleles-output {output.alleles} --output-prediction {output.results} {input.assembly}"
+        cmd="sistr -f tab --qc -t {threads} -l {input.serovarlist} --cgmlst-profiles {output.cgmlst} --alleles-output {output.alleles} --output-prediction {output.results} {params.options} {input.assembly}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -237,6 +242,8 @@ rule spatyper:
     input:
         assembly = rules.assembly.output.assembly,
         database = rules.setup_spatyper.output.database
+    params:
+        options = lambda wc: sample(wc).options("spatyper")
     output:
         results = f"{outdir}/{{sample}}/raw/spatyper/spatyper_{{assembler}}.tsv"
     conda:
@@ -248,7 +255,7 @@ rule spatyper:
     shell:
         """
         OUTDIR=$(dirname {output.results})
-        cmd="python {SCRIPTS_DIR}/SPATyper_V2.py -a {input.assembly} -d {input.database} -o {output.results} -b $OUTDIR/seq_db -l $OUTDIR/spatyper.log "
+        cmd="python {SCRIPTS_DIR}/SPATyper_V2.py -a {input.assembly} -d {input.database} -o {output.results} -b $OUTDIR/seq_db -l $OUTDIR/spatyper.log {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -259,6 +266,7 @@ rule seqsero2:
     input:
         assembly = rules.assembly.output.assembly
     params:
+        options = lambda wc: sample(wc).options("seqsero2"),
         tmp_results = "SeqSero_result.tsv"
     output:
         results = f"{outdir}/{{sample}}/raw/seqsero2/seqsero2_{{assembler}}.tsv"
@@ -275,7 +283,7 @@ rule seqsero2:
         OUTDIR=$(dirname {output.results})
         mkdir -p $OUTDIR
 
-        cmd="SeqSero2_package.py -m k -t 4 -b mem -i {input.assembly} -d $OUTDIR -n {wildcards.sample} -p {threads}"
+        cmd="SeqSero2_package.py -m k -t 4 -b mem -i {input.assembly} -d $OUTDIR -n {wildcards.sample} -p {threads} {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -290,6 +298,7 @@ rule plasmidfinder:
         assembly = rules.assembly.output.assembly,
         database = rules.setup_plasmidfinder.output.database
     params:
+        options = lambda wc: sample(wc).options("plasmidfinder"),
         tmp_results = "results_tab.tsv"
     output:
         results = f"{outdir}/{{sample}}/raw/plasmidfinder/plasmidfinder_{{assembler}}.tsv"
@@ -318,8 +327,8 @@ rule resfinder:
         assembly = rules.assembly.output.assembly,
         res_database = rules.setup_resfinder.output.database
     params:
-        tmp_results = "ResFinder_results_tab.txt",
-        options = lambda wc: sample_configs[wc.sample]["resfinder"]["options"]
+        options = lambda wc: sample(wc).options("resfinder"),
+        tmp_results = "ResFinder_results_tab.txt"
     output:
         results = f"{outdir}/{{sample}}/raw/resfinder/resfinder_{{assembler}}.tsv"
     conda:
@@ -347,8 +356,8 @@ rule pointfinder:
         res_database = rules.setup_resfinder.output.database,
         point_database = rules.setup_pointfinder.output.database
     params:
-        tmp_results = "PointFinder_results.txt",
-        options = lambda wc: sample_configs[wc.sample]["pointfinder"]["options"]
+        options = lambda wc: sample(wc).options("pointfinder"),
+        tmp_results = "PointFinder_results.txt"
     output:
         results = f"{outdir}/{{sample}}/raw/pointfinder/pointfinder_{{assembler}}.tsv"
     conda:
@@ -376,8 +385,8 @@ rule disinfinder:
         res_database = rules.setup_resfinder.output.database,
         disin_database = rules.setup_disinfinder.output.database
     params:
-        tmp_results = "DisinFinder_results_tab.txt",
-        options = lambda wc: sample_configs[wc.sample]["disinfinder"]["options"]
+        options = lambda wc: sample(wc).options("disinfinder"),
+        tmp_results = "DisinFinder_results_tab.txt"
     output:
         results = f"{outdir}/{{sample}}/raw/disinfinder/disinfinder_{{assembler}}.tsv"
     conda:
@@ -404,6 +413,7 @@ rule virulencefinder:
         assembly = rules.assembly.output.assembly,
         database = rules.setup_virulencefinder.output.database
     params:
+        options = lambda wc: sample(wc).options("virulencefinder"),
         tmp_results = "results_tab.tsv"
     output:
         results = f"{outdir}/{{sample}}/raw/virulencefinder/virulencefinder_{{assembler}}.tsv",
@@ -416,7 +426,7 @@ rule virulencefinder:
     shell:
         """
         OUTDIR=$(dirname {output.results})
-        cmd="python -m virulencefinder -ifa {input.assembly} -o $OUTDIR -p {input.database} -x"
+        cmd="python -m virulencefinder -ifa {input.assembly} -o $OUTDIR -p {input.database} -x {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -431,6 +441,7 @@ rule serotypefinder:
         assembly = rules.assembly.output.assembly,
         database = rules.setup_serotypefinder.output.database
     params:
+        options = lambda wc: sample(wc).options("serotypefinder"),
         tmp_results = "results_tab.tsv"
     output:
         results = f"{outdir}/{{sample}}/raw/serotypefinder/serotypefinder_{{assembler}}.tsv",
@@ -444,7 +455,7 @@ rule serotypefinder:
         """
         OUTDIR=$(dirname {output.results})
 
-        cmd="serotypefinder -i {input.assembly} -o $OUTDIR -p {input.database} -x"
+        cmd="serotypefinder -i {input.assembly} -o $OUTDIR -p {input.database} -x {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -458,6 +469,7 @@ rule serovar_detector:
     input:
         assembly = rules.assembly.output.assembly
     params:
+        options = lambda wc: sample(wc).options("serovar_detector"),
         tmp_results = "serovars.tsv"
     output:
         results = f"{outdir}/{{sample}}/raw/serovar_detector/serovar_detector.tsv"
@@ -469,7 +481,7 @@ rule serovar_detector:
         """
         OUTDIR=$(dirname {output.results})
 
-        cmd="serovar_detector -A {input.assembly} -o $OUTDIR -t 1"
+        cmd="serovar_detector -A {input.assembly} -o $OUTDIR -t 1 {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -487,7 +499,8 @@ rule samtools_sam_filtration:
     input:
         sam = f"{outdir}/{{sample}}/raw/samtools/{{database}}.sam"
     params:
-        options = lambda wc: sample_configs[wc.sample]["samtools"]["view_options"]
+        options = lambda wc: sample(wc).options("samtools"),
+        view = lambda wc: sample(wc).conifgs("samtools", "view")
     output:
         results = temp(f"{outdir}/{{sample}}/raw/samtools/samtools_bam_filtration_{{database}}.bam")
     conda:
@@ -498,7 +511,7 @@ rule samtools_sam_filtration:
         "[samtools_sam_filtration]: Filtering kmeralignment output for {wildcards.database} on {wildcards.sample}"
     shell:
         """
-        cmd="samtools view {input.sam} {params.options} -F 4 -bo {output.results}"
+        cmd="samtools view {input.sam} {params.options} {params.view} -F 4 -bo {output.results}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -510,7 +523,8 @@ rule samtools_sort:
     input:
         bam = f"{outdir}/{{sample}}/raw/samtools/samtools_bam_filtration_{{database}}.bam"
     params:
-        options = lambda wc: sample_configs[wc.sample]["samtools"]["sort_options"]
+        options = lambda wc: sample(wc).options("samtools"),
+        sort = lambda wc: sample(wc).configs("samtools", "sort")
     output:
         results = temp(f"{outdir}/{{sample}}/raw/samtools/samtools_sort_{{database}}.bam"),
         index = temp(f"{outdir}/{{sample}}/raw/samtools/samtools_sort_{{database}}.bam.bai")
@@ -522,7 +536,7 @@ rule samtools_sort:
         "[samtools_sort]: Sorting filtered bam for {wildcards.database} on {wildcards.sample}"
     shell:
         """
-        cmd="samtools sort -o {output.results} {input.bam}"
+        cmd="samtools sort -o {output.results} {params.options} {params.sort} {input.bam}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -538,6 +552,8 @@ rule bcftools_pileup:
     input:
         bam_sort = rules.samtools_sort.output.results,
         reference = f"{database_dir}/samtools/{{database}}.fasta"
+    params:
+        options = lambda wc: sample(wc).options("bcftools")
     output:
         results = temp(f"{outdir}/{{sample}}/raw/bcftools/bcftools_pileup_{{database}}.bcf"),
         index = temp(f"{outdir}/{{sample}}/raw/bcftools/bcftools_pileup_{{database}}.bcf.csi")
@@ -549,7 +565,7 @@ rule bcftools_pileup:
         "[bcftools_pileup]: Generating mpileup for {wildcards.database} on {wildcards.sample}"
     shell:
         """
-        cmd="bcftools mpileup -Ob -f {input.reference} {input.bam_sort} -o {output.results}"
+        cmd="bcftools mpileup -Ob -f {input.reference} {params.options} {input.bam_sort} -o {output.results}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -566,7 +582,8 @@ rule bcftools_filter_indels:
         pileup = rules.bcftools_pileup.output.results,
         pileup_index = rules.bcftools_pileup.output.index,
     params:
-        options = lambda wc: sample_configs[wc.sample]["bcftools"]["view_options"]
+        options = lambda wc: sample(wc).options("bcftools"),
+        view = lambda wc: sample(wc).configs("bcftools", "view")
     output:
         results = temp(f"{outdir}/{{sample}}/raw/bcftools/bcftools_filter_indels_{{database}}.bcf"),
         index = temp(f"{outdir}/{{sample}}/raw/bcftools/bcftools_filter_indels_{{database}}.bcf.csi")
@@ -578,7 +595,7 @@ rule bcftools_filter_indels:
         "[bcftools_filter_indels]: Filtering indels of {wildcards.database} on {wildcards.sample}"
     shell:
         """
-        cmd="bcftools view {params.options} -Ob -o {output.results} {input.pileup}"
+        cmd="bcftools view {params.options} {params.view} -Ob -o {output.results} {input.pileup}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -593,7 +610,9 @@ rule bcftools_filter_indels:
 rule bcftools_variant_call:
     input:
         pileup = rules.bcftools_pileup.output.results,
-        pileup_index = rules.bcftools_pileup.output.index,
+        pileup_index = rules.bcftools_pileup.output.index
+    params:
+        options = lambda wc: sample(wc).options("bcftools")
     output: 
         results = temp(f"{outdir}/{{sample}}/raw/bcftools/bcftools_variant_call_{{database}}.bcf"),
         index = temp(f"{outdir}/{{sample}}/raw/bcftools/bcftools_variant_call_{{database}}.bcf.csi")
@@ -605,7 +624,7 @@ rule bcftools_variant_call:
         "[bcftools_variant_call]: Calling variant of {wildcards.database} on {wildcards.sample}"
     shell:
         """
-        cmd="bcftools call -mv -Ob --ploidy 1 {input.pileup} -o {output.results}"
+        cmd="bcftools call -mv -Ob --ploidy 1 {input.pileup} -o {output.results} {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -622,7 +641,7 @@ rule snp_identifier:
         variants = rules.bcftools_variant_call.output.results,
         variants_index = rules.bcftools_variant_call.output.index,
     params:
-        options = lambda wc: sample_configs[wc.sample]["snp_identifier"]["options"],
+        options = lambda wc: sample(wc).options("snp_identifier"),
         metafile = f"{SCREENING_DIR}/SNP_metafile.tsv"
     output:
         indentified_variants = f"{outdir}/{{sample}}/raw/snp_identifier/snp_identifier_{{database}}.tsv"
@@ -650,7 +669,7 @@ rule deletion_identifier:
         variants_index = rules.bcftools_variant_call.output.index,
         asm_aln = rules.minimap2.output.results
     params:
-        options  = lambda wc: sample_configs[wc.sample]["deletion_identifier"]["options"],
+        options  = lambda wc: sample(wc).options("deletion_identifier"),
         metafile = f"{SCREENING_DIR}/deletion_metafile.tsv"
     output:
         identified_variants = f"{outdir}/{{sample}}/raw/deletion_identifier/deletion_identifier_{{database}}_{{assembler}}.tsv"
@@ -676,8 +695,8 @@ rule cdiff_repeat_identifier:
         metas = expand(rules.fetch_type_repeat_metadata.output.meta, TR = ["TR6", "TR10", "TRST"]),
         assembly = rules.assembly.output.assembly
     params:
-        repeats = lambda wc: sample_configs[wc.sample]["cdiff_repeat_identifier"]["repeats"],
-        combos = lambda wc: sample_configs[wc.sample]["cdiff_repeat_identifier"]["combos"]
+        repeats = lambda wc: sample(wc).configs("cdiff_repeat_identifier", "repeats"),
+        combos = lambda wc: sample(wc).configs("cdiff_repeat_identifier", "combos")
     output:
         repeat_types = f"{outdir}/{{sample}}/raw/cdiff_repeat_identifier/cdiff_repeat_identifier_{{assembler}}.tsv"
     conda:

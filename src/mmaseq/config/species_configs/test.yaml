@@ -3,15 +3,8 @@ kmeraligner_wrangler:
     database: ecoligenes
     reads: True
 
-
-# snp_identifier:
-#     options: --organism 'Clostridioides difficile' --snp_region_buffer 5
-#     database: CdiffToxins
-
-# deletion_identifier:
-#     options: --organism 'Clostridioides difficile' --deletion_region_buffer 5 --overlap_fraction 0.5
-#     database: CdiffToxins
-#     assembler: spades
+shovill:
+    ignore: True
 
 assembly_minimap2:
     options: -ax asm5 --cs
@@ -29,12 +22,12 @@ amrfinder:
     options: ""
 
 samtools:
-    view_options: -q 20
-    sort_options: -n
+    view: -q 20
+    sort: -n
     ignore: True
 
 bcftools:
-    view_options: -v indels -i 'INFO/DP>10'
+    view: -v indels -i 'INFO/DP>10'
     ignore: True
 
 resfinder:

@@ -2,8 +2,10 @@
 
 rule spades:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2()
+    params:
+        options = lambda wc: sample(wc).options("spades")
     output:
         assembly = f"{outdir}/{{sample}}/raw/spades/spades_{{sample}}.fasta"
     conda:
@@ -17,7 +19,7 @@ rule spades:
     shell:
         """
         outdir=$(dirname {output.assembly})
-        cmd="spades.py -1 {input.R1} -2 {input.R2} --threads {threads} --isolate -o $outdir"
+        cmd="spades.py -1 {input.R1} -2 {input.R2} --threads {threads} --isolate -o $outdir {params.options}"
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
 
@@ -29,8 +31,10 @@ rule spades:
 
 rule skesa:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2()
+    params:
+        options = lambda wc: sample(wc).options("skesa")
     output:
         assembly = f"{outdir}/{{sample}}/raw/skesa/skesa_{{sample}}.fasta"
     conda:
@@ -43,7 +47,7 @@ rule skesa:
         "[skesa]: Assemblying {wildcards.sample} using Skesa with {threads} core(s). This may take some time!\nInspect {log.stdout} for more details!"
     shell:
         """
-        cmd="skesa --reads {input.R1},{input.R2} --contigs_out {output.assembly} --cores {threads}"
+        cmd="skesa --reads {input.R1},{input.R2} --contigs_out {output.assembly} --cores {threads} {params.options}"
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
         """
@@ -51,8 +55,10 @@ rule skesa:
 
 rule shovill:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2()
+    params:
+        options = lambda wc: sample(wc).options("shovill")
     output:
         assembly = f"{outdir}/{{sample}}/raw/shovill/shovill_{{sample}}.fasta"
     conda:
@@ -68,7 +74,7 @@ rule shovill:
         mkdir -p $(dirname {output.assembly})
         outdir=$(dirname {output.assembly})
 
-        cmd="shovill --R1 {input.R1} --R2 {input.R2} --outdir $outdir/ --force --cpus {threads}"
+        cmd="shovill --R1 {input.R1} --R2 {input.R2} --outdir $outdir/ --force --cpus {threads} {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -80,19 +86,20 @@ rule shovill:
 
 ### Mapping ###
 
-rule PR_kmeraligner:
+rule paired_kmeraligner:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2(),
         database = rules.setup_kmeraligner_index.output.names
     params:
+        options = lambda wc: sample(wc).options("kmeraligner"),
         tmp_results = f"{{database}}.res",
         tmp_matrix = f"{{database}}.mat.gz",
         prefix_db = rules.setup_kmeraligner_index.params.prefix    
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/kmeraligner/kmeraligner_{{database}}.tsv",
+        results = f"{outdir}/{{sample}}/raw/paired/kmeraligner/kmeraligner_{{database}}.tsv",
         sam = temp(f"{outdir}/{{sample}}/raw/samtools/{{database}}.sam"),
-        matrix = temp(f"{outdir}/{{sample}}/raw/PR/kmeraligner/kmeraligner_{{database}}.mat.gz")
+        matrix = temp(f"{outdir}/{{sample}}/raw/paired/kmeraligner/kmeraligner_{{database}}.mat.gz")
     conda:
         ENVS_DIR / "kmeraligner.yaml"
     log:
@@ -107,7 +114,7 @@ rule PR_kmeraligner:
         SAMDIR=$(dirname {output.sam})
         mkdir -p $SAMDIR
 
-        cmd="kma -ipe {input.R1} {input.R2} -o $OUTDIR/{wildcards.database} -t_db {params.prefix_db} -na -nc -nf -sam 4 -matrix > {output.sam}"
+        cmd="kma -ipe {input.R1} {input.R2} -o $OUTDIR/{wildcards.database} -t_db {params.prefix_db} -na -nc -nf -sam 4 -matrix {params.options} > {output.sam}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -120,14 +127,14 @@ rule PR_kmeraligner:
 
 rule kmeraligner_consensus:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2(),
         database = rules.setup_kmeraligner_index.output.names
     params:
         tmp_results = f"{{database}}.fsa",
         prefix_db = rules.setup_kmeraligner_index.params.prefix,
     output:
-        results = temp(f"{outdir}/{{sample}}/raw/PR/kmerconsensus/kmeraligner_consensus_{{database}}.fasta")
+        results = temp(f"{outdir}/{{sample}}/raw/paired/kmerconsensus/kmeraligner_consensus_{{database}}.fasta")
     conda:
         ENVS_DIR / "kmeraligner.yaml"
     log:
@@ -148,15 +155,15 @@ rule kmeraligner_consensus:
         """
 
 
-rule PR_bowtie2:
+rule paired_bowtie2:
     input:
-       R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-       R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
+       R1 = lambda wc: sample(wc).read1(),
+       R2 = lambda wc: sample(wc).read2(),
        database = rules.setup_bowtie2_index.output.bt2_1 # just locate one of the bt2 files to activate the db_setup
     params:
-       options = lambda wc: sample_configs[wc.sample]["bowtie2"]["options"]
+       options = lambda wc: sample(wc).options("bowtie2")
     output:
-        sam = temp(f"{outdir}/{{sample}}/raw/PR/bowtie2/bowtie2_{{database}}.sam")
+        sam = temp(f"{outdir}/{{sample}}/raw/paired/bowtie2/bowtie2_{{database}}.sam")
     threads: max(1, workflow.cores - 1 - (workflow.cores - 1) % 2)
     priority: 1
     conda:
@@ -172,21 +179,22 @@ rule PR_bowtie2:
         db_prefix="{input.database}"
         db_prefix="${{db_prefix%.1.bt2}}"
 
-        cmd="bowtie2 -1 {input.R1} -2 {input.R2} -q -S {output.sam} {params.options} -x $db_prefix --threads {threads}"
+        cmd="bowtie2 -1 {input.R1} -2 {input.R2} -q -S {output.sam} -x $db_prefix --threads {threads} {params.options}"
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
         """
 
 ### Characterizers ###
 
-rule PR_seqsero2:
+rule paired_seqsero2:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2()
     params:
+        options = lambda wc: sample(wc).options("seqsero2"),
         tmp_results = "SeqSero_result.tsv"
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/seqsero2/seqsero2.tsv"
+        results = f"{outdir}/{{sample}}/raw/paired/seqsero2/seqsero2.tsv"
     threads: max(1, workflow.cores - 1 - (workflow.cores - 1) % 2)
     priority: 1
     conda:
@@ -200,7 +208,7 @@ rule PR_seqsero2:
         OUTDIR=$(dirname {output.results})
         mkdir -p $OUTDIR
 
-        cmd="SeqSero2_package.py -m k -t 2 -b mem -i {input.R1} {input.R2} -d $OUTDIR -n {wildcards.sample} -p {threads}"
+        cmd="SeqSero2_package.py -m k -t 2 -b mem -i {input.R1} {input.R2} -d $OUTDIR -n {wildcards.sample} -p {threads} {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -210,16 +218,17 @@ rule PR_seqsero2:
         """
 
 
-rule PR_plasmidfinder:
+rule paired_plasmidfinder:
     input:
         # Input paired-end Illumina reads.
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2(),
         database = rules.setup_plasmidfinder.output.database
     params:
+        options = lambda wc: sample(wc).options("plasmidfinder"),
         tmp_results = "results_tab.tsv"
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/plasmidfinder/plasmidfinder.tsv"
+        results = f"{outdir}/{{sample}}/raw/paired/plasmidfinder/plasmidfinder.tsv"
     conda:
         ENVS_DIR / "plasmidfinder.yaml"
     log:
@@ -230,7 +239,7 @@ rule PR_plasmidfinder:
         """
         OUTDIR=$(dirname {output.results})
 
-        cmd="plasmidfinder.py -i {input.R1} {input.R2} -o $OUTDIR -p {input.database} -x"
+        cmd="plasmidfinder.py -i {input.R1} {input.R2} -o $OUTDIR -p {input.database} -x {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1     
@@ -240,16 +249,16 @@ rule PR_plasmidfinder:
         """
 
 
-rule PR_resfinder:
+rule paired_resfinder:
     input:
-        R1 = lambda wc: samples[wc.sample].inputs.read1,
-        R2 = lambda wc: samples[wc.sample].inputs.read2,
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2(),
         res_database = rules.setup_resfinder.output.database
     params:
-        tmp_results = "ResFinder_results_tab.txt",
-        options = lambda wc: samples[wc.sample].module("resfinder").options
+        options = lambda wc: sample(wc).options("resfinder"),
+        tmp_results = "ResFinder_results_tab.txt"
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/resfinder/resfinder.tsv"
+        results = f"{outdir}/{{sample}}/raw/paired/resfinder/resfinder.tsv"
     conda:
         ENVS_DIR / "resfinder.yaml"
     log:
@@ -269,17 +278,17 @@ rule PR_resfinder:
         """
 
 
-rule PR_pointfinder:
+rule paired_pointfinder:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2(),
         res_database = rules.setup_resfinder.output.database,
         point_database = rules.setup_pointfinder.output.database
     params:
-        tmp_results = "PointFinder_results.txt",
-        options = lambda wc: sample_configs[wc.sample]["pointfinder"]["options"]
+        options = lambda wc: sample(wc).options("pointfinder"),
+        tmp_results = "PointFinder_results.txt"
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/pointfinder/pointfinder.tsv"
+        results = f"{outdir}/{{sample}}/raw/paired/pointfinder/pointfinder.tsv"
     conda:
         ENVS_DIR / "resfinder.yaml"
     log:
@@ -299,17 +308,17 @@ rule PR_pointfinder:
         """
 
 
-rule PR_disinfinder:
+rule paired_disinfinder:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2(),
         res_database = rules.setup_resfinder.output.database,
         disin_database = rules.setup_disinfinder.output.database
     params:
-        tmp_results = "DisinFinder_results_tab.txt",
-        options = lambda wc: sample_configs[wc.sample]["disinfinder"]["options"]
+        options = lambda wc: sample(wc).options("disinfinder"),
+        tmp_results = "DisinFinder_results_tab.txt"
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/disinfinder/disinfinder.tsv"
+        results = f"{outdir}/{{sample}}/raw/paired/disinfinder/disinfinder.tsv"
     conda:
         ENVS_DIR / "resfinder.yaml"
     log:
@@ -329,15 +338,16 @@ rule PR_disinfinder:
         """
 
 
-rule PR_virulencefinder:
+rule paired_virulencefinder:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2(),
         database = rules.setup_virulencefinder.output.database
     params:
+        options = lambda wc: sample(wc).options("virulencefinder"),
         tmp_results = "results_tab.tsv"
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/virulencefinder/virulencefinder.tsv",
+        results = f"{outdir}/{{sample}}/raw/paired/virulencefinder/virulencefinder.tsv",
     conda:
         ENVS_DIR / "virulencefinder.yaml"
     log:
@@ -347,7 +357,7 @@ rule PR_virulencefinder:
     shell:
         """
         OUTDIR=$(dirname {output.results})
-        cmd="python -m virulencefinder -ifq {input.R1} {input.R2} -o $OUTDIR -p {input.database} -x"
+        cmd="python -m virulencefinder -ifq {input.R1} {input.R2} -o $OUTDIR -p {input.database} -x {params.oprtions}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -357,15 +367,16 @@ rule PR_virulencefinder:
         """
 
 
-rule PR_serotypefinder:
+rule paired_serotypefinder:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"],
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2(),
         database = rules.setup_serotypefinder.output.database
     params:
+        options = lambda wc: sample(wc).options("serotypefinder"),
         tmp_results = "results_tab.tsv"
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/serotypefinder/serotypefinder.tsv",
+        results = f"{outdir}/{{sample}}/raw/paired/serotypefinder/serotypefinder.tsv",
     conda:
         ENVS_DIR / "serotypefinder.yaml"
     log:
@@ -376,7 +387,7 @@ rule PR_serotypefinder:
         """
         OUTDIR=$(dirname {output.results})
 
-        cmd="serotypefinder -i {input.R1} {input.R2} -o $OUTDIR -p {input.database} -x"
+        cmd="serotypefinder -i {input.R1} {input.R2} -o $OUTDIR -p {input.database} -x {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -386,23 +397,24 @@ rule PR_serotypefinder:
         """
 
 
-rule PR_serovar_detector:
+rule paired_serovar_detector:
     input:
-        R1 = lambda wc: samplesheet.loc[wc.sample, "read1"],
-        R2 = lambda wc: samplesheet.loc[wc.sample, "read2"]
+        R1 = lambda wc: sample(wc).read1(),
+        R2 = lambda wc: sample(wc).read2()
     params:
+        options = lambda wc: sample(wc).options("serovar_detector"),
         tmp_results = "serovars.tsv"
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/serovar_detector/serovar_detector.tsv"
+        results = f"{outdir}/{{sample}}/raw/paired/serovar_detector/serovar_detector.tsv"
     conda:
         ENVS_DIR / "serovar_detector.yaml"
     log:
-        stdout = f"{logdir}/PR/serovar_detector_{{sample}}.log"
+        stdout = f"{logdir}/paired/serovar_detector_{{sample}}.log"
     shell:
         """
         OUTDIR=$(dirname {output.results})
 
-        cmd="serovar_detector -1 {input.R1} -2 {input.R2} -o $OUTDIR -t 1"
+        cmd="serovar_detector -1 {input.R1} -2 {input.R2} -o $OUTDIR -t 1 {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
@@ -412,12 +424,14 @@ rule PR_serovar_detector:
         """
 
 
-rule PR_lrefinder:
+rule paired_lrefinder:
     input:
-        res = rules.PR_kmeraligner.output.results,
-        matrix = rules.PR_kmeraligner.output.matrix
+        res = rules.paired_kmeraligner.output.results,
+        matrix = rules.paired_kmeraligner.output.matrix
+    params:
+        options = lambda wc: sample(wc).options("lrefinder")
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/lrefinder/lrefinder_{{database}}.tsv",
+        results = f"{outdir}/{{sample}}/raw/paired/lrefinder/lrefinder_{{database}}.tsv",
     conda:
         ENVS_DIR / "py_utls.yaml"
     log:
@@ -429,20 +443,20 @@ rule PR_lrefinder:
         OUTDIR=$(dirname {output.results})
         mkdir -p $OUTDIR
 
-        cmd="python {SCRIPTS_DIR}/LRE-Typer.py -i {input.res} -m {input.matrix} -o {output.results}"
+        cmd="python {SCRIPTS_DIR}/LRE-Typer.py -i {input.res} -m {input.matrix} -o {output.results} {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
         """
 
-rule PR_chtyper:
+rule paired_chtyper:
     input:
-        results = rules.PR_kmeraligner.output.results
+        results = rules.paired_kmeraligner.output.results
     params:
         id = 90,
         coverage = 60
     output:
-        results = f"{outdir}/{{sample}}/raw/PR/chtyper/chtyper_{{database}}.tsv"
+        results = f"{outdir}/{{sample}}/raw/paired/chtyper/chtyper_{{database}}.tsv"
     log:
         stdout = f"{logdir}/chtyper_{{database}}_{{sample}}.log"
     message:
@@ -459,15 +473,15 @@ rule PR_chtyper:
 
 ### Wranglers ###
 
-rule PR_kmeraligner_wrangler:
+rule paired_kmeraligner_wrangler:
     input:
-        results = rules.PR_kmeraligner.output.results,
+        results = rules.paired_kmeraligner.output.results,
         database = rules.setup_kmeraligner_index.output.names
     params:
-        options = lambda wildcards: sample_configs[wildcards.sample]["kmeraligner_wrangler"]["options"],
+        options = lambda wc: sample(wc).options("kmeraligner_wrangler"),
         metafile = f"{SCREENING_DIR}/kmeraligner_wrangler.tsv"
     output:
-        filtered_tsv = f"{outdir}/{{sample}}/raw/PR/kmeraligner_wrangler/kmeraligner_wrangler_{{database}}.tsv"
+        filtered_tsv = f"{outdir}/{{sample}}/raw/paired/kmeraligner_wrangler/kmeraligner_wrangler_{{database}}.tsv"
     conda:
         ENVS_DIR / "py_utls.yaml"
     log:
@@ -478,8 +492,8 @@ rule PR_kmeraligner_wrangler:
         """
         mkdir -p $(dirname {output.filtered_tsv})
 
-        cmd="python {SCRIPTS_DIR}/KMA_Filter.py --KMA_res {input.results} --metafile {params.metafile} --sample_id {wildcards.sample} --output {output.filtered_tsv} {params.options} > {log.stdout} 2>&1"
+        cmd="python {SCRIPTS_DIR}/KMA_Filter.py --KMA_res {input.results} --metafile {params.metafile} --sample_id {wildcards.sample} --output {output.filtered_tsv} {params.options}"
 
-        echo "Executing command:\n$cmd\n" > {log.stdout}
+        echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
         """
