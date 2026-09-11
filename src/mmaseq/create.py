@@ -1,14 +1,14 @@
+#!/usr/bin/env python3
+
 from .__version__ import __version__
-from .utils import logging_setup
 from .utils.PATH import *
+from .utils.logging_setup import initiate_log, adjust_log
+
 import argparse
 from pathlib import Path
 import re
 import pandas as pd
 import sys
-
-# Initiate logging
-logger = logging_setup.initiate_log("MMAcreate")
 
 
 def parse_create():
@@ -186,7 +186,7 @@ def launcher():
     args = parse_create()
 
     # Adjusting logging
-    logging_setup.adjust_log(logger, args.verbosity, args.logfile)
+    adjust_log(logger, args.verbosity, args.logfile)
 
     samplesheet_file = create_samplesheet(args)
 
@@ -195,3 +195,6 @@ def launcher():
         "Now go and check the config column of the samplesheet, "
         "and change these to your liking!"
     )
+
+# Initiate logging
+logger = initiate_log("MMAcreate")

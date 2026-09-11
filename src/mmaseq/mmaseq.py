@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
+
 from .__version__ import __version__
+from .utils.PATH import *
+from .utils.logging_setup import initiate_log, adjust_log
+from .utils.classes import import_dataset, list_files
 
 import argparse
 from pathlib import Path
@@ -8,12 +12,7 @@ import re
 import pandas as pd
 from datetime import datetime
 import yaml
-from .utils import logging_setup, sample_config
-from .utils.PATH import *
 import subprocess
-
-# Initiate logging
-logger = logging_setup.initiate_log("MMAseq")
 
 
 def parse_mmaseq():
@@ -306,100 +305,82 @@ def create_config(samplesheet_file,
 
 
 def link_assemblies(
-    samplesheet_file,
-    config_dir,
+    samples,
     outdir,
     ignore_assemblies
 ):
     logger.trace(
-        f"link_assemblies(\n - samplesheet_file: {samplesheet_file}\n - "
-        f"config_dir: {config_dir}\n - outdir: {outdir})"
+        f"link_assemblies(\n\t"
+        f"samples = NOT SHOWN!\n\t"
+        f"outdir = {outdir}\n\t"
+        f"ignore_assemblies: {ignore_assemblies}\n)"
     )
 
     logger.debug("Initiating assembly symlinking")
-    logger.trace(f"Reading samplesheet from {samplesheet_file}")
-    samplesheet = pd.read_csv(samplesheet_file, sep="\t").set_index(
-        "sample_name"
-    )
-
-
-    logger.trace(f"Importing sample configs from {config_dir}")
-    sample_configs = sample_config.determine_sample_configs(
-        samplesheet,
-        config_dir,
-        ignore_assemblies
-    )
-
     # Iterating over sample configurations
-    for sample, configs in sample_configs.items():
+    for sample in samples.values():
 
-        assembly_source = (
-            sample_config.inspect_samplesheet_assembly_path(sample, samplesheet)
-        )
-        assembly_path = assembly_source.get(sample)
+        assembly_path = sample.assembly()
 
         # Attempt to locate relative paths from assembly listed in sheet
         if assembly_path is None:
-            logger.trace(f"Skipping assembly for {sample}")
-        elif not assembly_path:
+            logger.trace(f"Skipping assembly for {sample.name}")
+            continue
+        elif not assembly_path.exists():
             logger.warning(
-                f"Failed to locate assembly file for {sample} at {assembly_path}"
+                f"Failed to locate assembly file for {sample.name} at {assembly_path}"
                 "\nSkipping!"
             )
             continue
-        else:
-            # Handle if assembly file exists with a valid path
-            logger.trace(f"Assembly found at {assembly_path}")
 
-            # Determine assemblers specified in sample configs
-            assemblers = set()
-            for options in configs.values():
-                if not isinstance(options, dict) or "assembler" not in options:
-                    continue
-                raw = options["assembler"]
-                assembler_list = (
-                    raw if isinstance(raw, list) else [raw]
-                )
-                assemblers.update(assembler_list)
+        # Handle if assembly file exists with a valid path
+        logger.trace(f"Assembly found at {assembly_path}")
 
-            # Define assembly type from sample configurations
-            for assembler in assemblers:
-                assembly_dir = outdir / sample / "raw" / assembler
-                destination = assembly_dir / f"{assembler}_{sample}.fasta"
+        # Determine assemblers specified in sample configs
+        module_assemblers = set()
 
-                # Ensure output assembly results directory exists
-                if not assembly_dir.exists():
-                    assembly_dir.mkdir(parents = True)
+        for module in sample.modules.values():
+            module_assemblers.update(module.assembler)
 
-                # Handle destination when being broken links
-                if destination.is_symlink() and not destination.exists(follow_symlinks = True):
-                    logger.warning((
-                        f"Assembly results directory is a "
-                        f"broken link -> unlinking: {destination}"
-                    ))
-                    destination.unlink()
+        # Define assembly type from sample configurations
+        for assembler in module_assemblers:
+            assembly_dir = outdir / sample.name / "raw" / assembler
+            destination = assembly_dir / f"{assembler}_{sample.name}.fasta"
 
-                # Ignore pre-existing functional symbolic links at destination
-                elif destination.is_symlink():
-                    logger.debug((
-                        f"Assembly already linked to results directory. "
-                        f"Skipping {destination.name}"
-                    ))
-                    continue
+            # Ensure output assembly results directory exists
+            if not assembly_dir.exists():
+                assembly_dir.mkdir(parents = True)
 
-                # Initiate symlink creation if destination is empty
-                if not destination.exists(follow_symlinks = False):
-                    logger.debug((
-                        f"Creating symlink: {assembly_path} -> {destination}"
-                    ))
-                    destination.symlink_to(assembly_path)
+            # Handle destination when being broken links
+            if destination.is_symlink() and not destination.exists(follow_symlinks = True):
+                logger.warning((
+                    f"Assembly results directory is a "
+                    f"broken link -> unlinking: {destination}"
+                ))
+                destination.unlink()
 
-                # Note if assembly file allready exists, but not as a link
-                else:
-                    logger.debug((
-                        f"File exists and is not a symlink {destination}. "
-                        f"Skipping!"))
+            # Ignore pre-existing functional symbolic links at destination
+            elif destination.is_symlink():
+                logger.debug((
+                    f"Assembly already linked to results directory. "
+                    f"Skipping {destination.name}"
+                ))
+                continue
 
+            # Note if assembly file allready exists, but not as a link
+            if not destination.is_symlink:
+                logger.debug((
+                    f"File exists and is not a symlink {destination}. "
+                    f"Skipping!"
+                ))
+                continue
+
+            # Initiate symlink creation
+            logger.debug((
+                f"Creating symlink: {assembly_path} -> {destination}"
+            ))
+            destination.symlink_to(assembly_path)
+    
     return None
 
 
@@ -509,13 +490,15 @@ def mmaseq(args):
                            args.verbosity
                            )
 
+    samples = import_dataset(samplesheet_file, species_configs, outdir)
+
     if ignore_assemblies or force:
         logger.info("Assemblies in samplesheet will not replace "
                     "assembly steps in the pipeline. This might take some time!")
     else:
         logger.info("Assemblies in samplesheet will be used to skip "
                     "assembly steps in the pipeline, where applicable!")
-        link_assemblies(samplesheet_file, species_configs, outdir, ignore_assemblies)
+        link_assemblies(samples, outdir, ignore_assemblies)
 
 
     logger.debug("Creating pipeline command")
@@ -541,8 +524,11 @@ def launcher() -> None:
     args = parse_mmaseq()
 
     # Initiate logging
-    logging_setup.adjust_log(logger, args.verbosity, args.logfile)
+    adjust_log(logger, args.verbosity, args.logfile)
 
     mmaseq(args)
 
     logger.info("MMAseq successful!")
+
+# Initiate logging
+logger = initiate_log("MMAseq")
