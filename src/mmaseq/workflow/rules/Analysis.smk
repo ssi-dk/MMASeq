@@ -500,7 +500,7 @@ rule samtools_sam_filtration:
         sam = f"{outdir}/{{sample}}/raw/samtools/{{database}}.sam"
     params:
         options = lambda wc: sample(wc).options("samtools"),
-        view = lambda wc: sample(wc).conifgs("samtools", "view")
+        view = lambda wc: sample(wc).configs("samtools", "view")
     output:
         results = temp(f"{outdir}/{{sample}}/raw/samtools/samtools_bam_filtration_{{database}}.bam")
     conda:
@@ -543,7 +543,7 @@ rule samtools_sort:
 
         cmd="samtools index {output.results}"
 
-        echo "\nIndexing Bam:\n$cmd\n" > {log.stdout} 2>&1
+        echo "\nIndexing Bam:\n$cmd\n" >> {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
         """
 

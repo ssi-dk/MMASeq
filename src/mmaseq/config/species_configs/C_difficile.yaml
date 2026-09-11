@@ -32,7 +32,7 @@ mlst:
 
 samtools:
     view: -q 20
-    sort: -n
+    sort: ""
     ignore: True
     reads: True
 

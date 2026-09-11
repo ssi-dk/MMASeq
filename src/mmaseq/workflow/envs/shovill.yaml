@@ -2,4 +2,4 @@ name: shovill
 dependencies:
   - bioconda::spades
   - bioconda::shovill
-
+  - conda-forge::python<3.12

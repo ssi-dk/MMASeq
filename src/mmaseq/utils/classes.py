@@ -4,7 +4,7 @@ from yaml import safe_load
 import pandas as pd
 from itertools import product
 
-# Classes
+
 @dataclass
 class Input:
     read1: Path | None = None
@@ -51,11 +51,13 @@ class Module:
     ignore: bool = False
     reads: bool = False
     config: dict = field(default_factory=dict)
-    raw: Path | None = None
-    results: Path | None = None
+    raw: list[Path] = field(default_factory=list)
+    results: list[Path] = field(default_factory=list)
+
 
     def status(self):
-        if self.results.exists():
+
+        if self.results and all(path.exists() for path in self.results):
             return f"{self.name}: Success"
 
         return f"{self.name}: Missing"
@@ -66,7 +68,7 @@ class Sample:
     name: str
     config_file: Path
     inputs:  Input
-    outpath: Path
+    outdir: Path
     modules: dict[str, Module] = field(default_factory = dict)
 
     def read1(self):
@@ -104,6 +106,10 @@ class Sample:
             return self.modules.get(module).results
 
         return ''
+
+    @property
+    def rawdir(self):
+        return self.outdir / "raw"
 
 
     def all_raw(self):
@@ -151,11 +157,11 @@ class Sample:
             configs_raw = safe_load(cfg_read)
 
         for module, components in configs_raw.items():
-            opt = check_config_fields(components = components, field = "options", default = '')
-            db = as_list(check_config_fields(components = components, field = "database", default = []))
-            asm = as_list(check_config_fields(components = components, field = "assembler", default = []))
-            ignr = check_config_fields(components = components, field = "ignore", default = False)
-            rds = check_config_fields(components = components, field = "reads", default = False)
+            opt = components.get("options", "")
+            db = as_list(components.get("database"))
+            asm = as_list(components.get("assembler"))
+            ignr = components.get("ignore", False)
+            rds = components.get("reads", False)
 
             config = {
                 key: value
@@ -172,12 +178,14 @@ class Sample:
             read_str = ""
             if rds and read_type:
                 read_str = f"{read_type}/"
+
+            module_dir = f"{read_str}{module}"
             
             raw = None
             results = None
             if not ignr:
-                raw = [f"{self.outpath}/raw/{read_str}{module}/{module}{ext}" for ext in exts]
-                results = [f"{self.outpath}/{read_str}{module}/{module}{ext}" for ext in exts]
+                raw = [self.rawdir / module_dir / f"{module}{ext}" for ext in exts]
+                results = [self.outdir / module_dir / f"{module}{ext}" for ext in exts]
 
             mod = Module(
                 name = module,
@@ -196,16 +204,6 @@ class Sample:
         self.modules = modules
 
         return self
-
-
-## Initiation scripts
-
-def check_config_fields(components, field, default):
-    value = default
-    if field in components:
-        value = components.get(field)
-
-    return value
 
 
 def as_list(value):
@@ -245,7 +243,7 @@ def determine_outfile_exts(reads, database, assembly):
     return [f"{asm}.tsv" for asm in asm_strings]
 
 
-def import_dataset(samplesheet_path, config_dir, outdir):
+def import_dataset(samplesheet_path, config_dir, outpath):
 
     samplesheet = pd.read_csv(
         samplesheet_path,
@@ -265,7 +263,7 @@ def import_dataset(samplesheet_path, config_dir, outdir):
         if not config_file.exists():
             raise FileNotFoundError(f"Configuration file not found - Check your samplesheet: {config_file}.")
 
-        smpl = Sample(name = sample, config_file = config_file, inputs = Input(read1, read2, assembly), outpath = outdir / sample).populate_modules()
+        smpl = Sample(name = sample, config_file = config_file, inputs = Input(read1, read2, assembly), outdir = outpath / sample).populate_modules()
 
         samples.update({sample: smpl})
 
@@ -286,3 +284,4 @@ def list_files(samples, raw = False):
                 files.append(res_file)
 
     return files
+

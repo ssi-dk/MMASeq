@@ -1,5 +1,6 @@
 from mmaseq.utils.PATH import *
-from mmaseq.utils import logging_setup, helpers, sample_config, result_paths, results_aggregator, classes
+from mmaseq.utils.logging_setup import initiate_log, adjust_log
+from mmaseq.utils.classes import import_dataset, list_files
 from pathlib import Path
 import pandas as pd
 
@@ -10,12 +11,11 @@ def sample(wc):
 
 # Initiate logging
 ###################################################################
-logger = logging_setup.initiate_log("MMAseq Pipeline")
-logging_setup.adjust_log(logger, int(config["verbosity"]))
+logger = initiate_log("MMAseq Pipeline")
+adjust_log(logger, int(config["verbosity"]))
 
 logger.info("Setting up pipeline variables")
 logger.debug("Importing user input from config file")
-
 
 # Read user input
 ###################################################################
@@ -38,19 +38,17 @@ logger.trace(("Deduced variables:\n"
     f" - logdir: {logdir}"
     f" - database_dir: {database_dir}"))
 
-
 # Read config files
 #################################################################
 logger.debug("Creating sample specific input and output objects")
 logger.trace("Reading samplesheet")
 
 logger.trace("Generating Sample class objects")
-samples = classes.import_dataset(samplesheet_path, species_configs, outdir)
+samples = import_dataset(samplesheet_path, species_configs, outdir)
 
 logger.trace("Determining output files")
-raw_files = classes.list_files(samples, raw = True)
-result_files = classes.list_files(samples, raw = False)
-
+raw_files = list_files(samples, raw = True)
+result_files = list_files(samples, raw = False)
 
 #################################
 logger.info("Initiating pipeline")

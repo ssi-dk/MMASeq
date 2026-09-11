@@ -357,7 +357,7 @@ rule paired_virulencefinder:
     shell:
         """
         OUTDIR=$(dirname {output.results})
-        cmd="python -m virulencefinder -ifq {input.R1} {input.R2} -o $OUTDIR -p {input.database} -x {params.oprtions}"
+        cmd="python -m virulencefinder -ifq {input.R1} {input.R2} -o $OUTDIR -p {input.database} -x {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
