@@ -37,4 +37,6 @@ for conda_path in conda_dir.iterdir():
         if pkg["name"] == conda_env.get("name"):
             versions_list.append({"Tool": pkg["name"], "Version": pkg["version"]})
 
-pd.DataFrame(versions_list).to_csv(versions_file, sep="\t", index=False)
+versions = pd.DataFrame(versions_list).drop_duplicates()
+
+versions.to_csv(versions_file, sep="\t", index=False)
