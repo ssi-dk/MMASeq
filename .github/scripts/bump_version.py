@@ -33,7 +33,7 @@ elif label == "patch":
 new_version = f'{major}.{minor}.{patch}'
 
 
-version_text = f'__version__ = {new_version}'
+version_text = f'__version__ = "{new_version}"'
 
 version_file.write_text(version_text)
 
