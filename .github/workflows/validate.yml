@@ -95,6 +95,8 @@ jobs:
         with:
           environment-name: test-env
           init-shell: bash
+          create-args: >-
+            python=3.13
 
       - name: Test conda installation
         shell: bash -l {0}
