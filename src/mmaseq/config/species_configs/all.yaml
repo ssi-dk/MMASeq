@@ -28,13 +28,13 @@ amrfinder:
     options: ""
 
 samtools:
-    view_options: -q 20
-    sort_options: -n
+    view: -q 20
+    sort: -n
     ignore: True
 
 
 bcftools:
-    view_options: -v indels -i 'INFO/DP>10'
+    view: -v indels -i 'INFO/DP>10'
     ignore: True
 
 resfinder:

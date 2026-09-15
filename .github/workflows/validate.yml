@@ -3,6 +3,8 @@ name: Validate Pull Requests
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches:
+      - dev
 
 concurrency:
   group: build-${{ github.event.pull_request.number || github.head_ref }}
@@ -93,6 +95,8 @@ jobs:
         with:
           environment-name: test-env
           init-shell: bash
+          create-args: >-
+            python=3.13
 
       - name: Test conda installation
         shell: bash -l {0}

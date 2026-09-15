@@ -1,14 +1,15 @@
+#!/usr/bin/env python3
+
 from .__version__ import __version__
-from .utils import logging_setup
 from .utils.PATH import *
+from .utils.logging_setup import initiate_log, adjust_log
+
 import argparse
 import subprocess
 import sys
 import collections
 import ftplib
 import shutil
-
-logger = logging_setup.initiate_log("MMAdeploy")
 
 
 def parse_deploy():
@@ -141,13 +142,13 @@ def deploy_spe_configs(deploy_dir):
         f"deploy_dir = {deploy_dir}"
         ")"))
 
-    spe_configs_dir = deploy_dir / "species_configs"
+    species_configs = deploy_dir / "species_configs"
     
     logger.trace("Checking whether config dir allready exists")
-    if not spe_configs_dir.exists():
-        logger.trace(f"Couldn't locate {spe_configs_dir}, clonig from {SPE_CONFIGS}")
-        shutil.copytree(SPE_CONFIGS, spe_configs_dir)
-        #SPE_CONFIGS.copy(spe_configs_dir) # Use from python 3.14+ and remove import shutils
+    if not species_configs.exists():
+        logger.trace(f"Couldn't locate {species_configs}, clonig from {SPE_CONFIGS}")
+        shutil.copytree(SPE_CONFIGS, species_configs)
+        #SPE_CONFIGS.copy(species_configs) # Use from python 3.14+ and remove import shutils
         logger.info("Copied species configs directory from installation folder into deployment dir.")
     else:
         logger.info("Species configuration directory allready exists. Skipping!")
@@ -278,8 +279,6 @@ def deploy_dataset(update, max_retries):
         f"max_retries: {max_retries})"
     )
 
-
-
     with open(URL_FILE, "r") as url_file:
         urls = url_file.read().splitlines()
 
@@ -405,9 +404,11 @@ def launcher() -> None:
     args = parse_deploy()
 
     # Adjust logger
-    logging_setup.adjust_log(logger, args.verbosity)
+    adjust_log(logger, args.verbosity)
 
     deploy(args)
 
     logger.info("Deployment successful!")
 
+# Initiate logging
+logger = initiate_log("MMAdeploy")
