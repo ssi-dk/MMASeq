@@ -430,7 +430,7 @@ def create_command(threads,
         f"--snakefile {SNAKEFILE} "
         f"--conda-prefix {conda_dir} "
         f"{additionals} "
-        f"{aggregate_rule}"
+        f"{longtable_rule}"
         f"{clean_rule}"
     )
 
@@ -454,6 +454,7 @@ def mmaseq(args):
     clean = args.clean
     custom = args.custom
     force = args.force
+    longtable = args.longtable
     ignore_assemblies = args.ignore_assemblies
 
     # Resolve other objects
@@ -519,6 +520,7 @@ def mmaseq(args):
                              config_file, 
                              conda_dir,
                              force,
+                             longtable,
                              clean
                              )
 
