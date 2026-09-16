@@ -414,7 +414,7 @@ def create_command(threads,
     if force:
         additionals += "--forceall "
 
-    if table:   
+    if longtable:   
         longtable_rule = "long_table "
     
     if clean:
