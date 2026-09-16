@@ -130,6 +130,15 @@ def parse_mmaseq():
     )
 
     parser.add_argument(
+        "--longtable",
+        dest="longtable",
+        action="store_true",
+        help=(
+            "Generate a long-format results table. (Default: %(default)s) "
+        )
+    )
+
+    parser.add_argument(
         "--verbosity",
         dest="verbosity",
         type=int,
@@ -389,6 +398,7 @@ def create_command(threads,
                    config_file, 
                    conda_dir,
                    force,
+                   longtable,
                    clean,
                    arguments = None):
     logger.trace(("create_command(\n"
@@ -403,11 +413,12 @@ def create_command(threads,
 
     if force:
         additionals += "--forceall "
-           
-    target_rule = "copy "
+
+    if table:   
+        longtable_rule = "long_table "
     
     if clean:
-        target_rule = "clean "
+        clean_rule = "clean "
 
     # Determine command
     command = (
@@ -419,7 +430,8 @@ def create_command(threads,
         f"--snakefile {SNAKEFILE} "
         f"--conda-prefix {conda_dir} "
         f"{additionals} "
-        f"{target_rule}"
+        f"{aggregate_rule}"
+        f"{clean_rule}"
     )
 
     return command
