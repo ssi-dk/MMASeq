@@ -11,7 +11,7 @@ import collections
 import ftplib
 import shutil
 import urllib.request
-
+from urllib.parse import urlparse
 
 def parse_deploy():
     parser = argparse.ArgumentParser(
@@ -168,14 +168,18 @@ def deploy_spe_configs(deploy_dir):
 
 def extract_hosts(urls):
     logger.trace(f"extract_hosts(urls = {urls})")
+
     hosts = collections.defaultdict(list)
+
     for url in urls:
-        host, *path_list = url.replace('ftp://', '').split('/')
-        path = f"/{'/'.join(path_list)}"
+        parsed_url = urlparse(url)
+
+        host = parsed_url.netloc
+        path = parsed_url.path
+
         hosts[host].append(path)
 
     return hosts
-
 
 def connect_ftp(host, timeout = 15):
     logger.trace(f"Connecting to {host}")
@@ -326,10 +330,15 @@ def download_https_file(host, path, destination, max_retries):
                 with open(target_chnk, "wb") as local_file:
                     shutil.copyfileobj(response, local_file)
 
+            logger.trace(
+                f"Renaming {target_chnk.name} to {target_file.name}"
+            )
+
             target_chnk.replace(target_file)
 
             logger.info(
-                f"{target_file.name} successfully downloaded via HTTPS"
+                f"{target_file.name} successfully downloaded "
+                f"via HTTPS into {destination}"
             )
 
             return True
@@ -399,12 +408,10 @@ def deploy_dataset(update, max_retries):
             finally:
                 disconnect_ftp(ftp)
 
-        # HTTPS fallback for the host itself or individual failed files
         if failed_paths:
             logger.warning(
                 f"{len(failed_paths)} file(s) from {host} "
-                "could not be downloaded via FTP. "
-                "Trying HTTPS fallback."
+                "will be attempted via HTTPS."
             )
 
             for path in failed_paths:
