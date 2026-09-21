@@ -427,6 +427,7 @@ def deploy_dataset(update, max_retries):
                         f"Failed to download {path} via both "
                         f"FTP and HTTPS."
                     )
+                    raise RuntimeError(f"Unable to download dataset files")
 
     return None
 
