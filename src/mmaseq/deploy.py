@@ -10,6 +10,7 @@ import sys
 import collections
 import ftplib
 import shutil
+import urllib.request
 
 
 def parse_deploy():
@@ -201,18 +202,19 @@ def disconnect_ftp(ftp):
 
 
 def download_ftp_file(ftp, paths, destination, max_retries):
-
     logger.trace(
         f"download_ftp_file(\n - ftp: {ftp}\n - paths: {paths}\n - "
         f"destination: {destination}\n - max_retries: {max_retries})"
     )
 
-    for path in paths:
+    failed_paths = []
 
-        # Define target file and download chunk file
+    for path in paths:
         target_file = destination / path.split('/')[-1]
-        target_chnk = target_file.with_suffix(f"{target_file.suffix}.chunk")
-                
+        target_chnk = target_file.with_suffix(
+            f"{target_file.suffix}.chunk"
+        )
+
         # Remove old chunks if already exists
         if target_chnk.exists():
             logger.warning(
@@ -223,57 +225,124 @@ def download_ftp_file(ftp, paths, destination, max_retries):
 
         # Abort if the file exists
         if target_file.exists():
-            logger.debug(f"File already downloaded. Skipping {target_file.name}")
+            logger.debug(
+                f"File already downloaded. Skipping {target_file.name}"
+            )
             continue
 
-        logger.info(f"Test sample missing. Downloading {target_file.name}")
+        logger.info(
+            f"Test sample missing. Downloading {target_file.name}"
+        )
 
-        success = False    
+        success = False
         retries = 0
+
         while retries <= max_retries:
             retries += 1
 
             try:
-
                 logger.trace(
                     f"Downloading {target_file.name} as {target_chnk}"
                 )
 
                 with open(target_chnk, 'wb') as local_file:
-                    ftp.retrbinary(f'RETR {path}', local_file.write)
+                    ftp.retrbinary(
+                        f'RETR {path}',
+                        local_file.write
+                    )
 
                 logger.trace(
                     f"Renaming {target_chnk.name} to {target_file.name}"
                 )
-                target_chnk.replace(target_file)
-                
-                success = True
 
-                retries = max_retries + 1
+                target_chnk.replace(target_file)
+
+                success = True
+                break
 
             except Exception as e:
                 logger.error(
-                    f"Failed to download {path} on attempt #{retries}\n{e}"
+                    f"Failed to download {path} on attempt "
+                    f"#{retries}\n{e}"
                 )
-            finally:
-                if target_file.exists() and not success:
-                    logger.warning(
-                        f"Download was unsuccessful, but target does exist: "
-                        f"{target_file}. Something is wrong - Deleting!"
-                    )
-                    target_file.unlink()
 
-        # Want to introduce status messages here.
+                if target_chnk.exists():
+                    target_chnk.unlink()
+
         if success:
             logger.trace(
-                f"{target_file.name} was successfully downloaded into {READ_DIR}"
+                f"{target_file.name} was successfully downloaded "
+                f"into {destination}"
             )
         else:
-            logger.warning(f"{target_file.name} failed to download!")
+            logger.warning(
+                f"{target_file.name} failed to download via FTP!"
+            )
+            failed_paths.append(path)
+
+    return failed_paths
+
+
+def download_https_file(host, path, destination, max_retries):
+    logger.trace(
+        f"download_https_file(\n - host: {host}\n - path: {path}\n"
+        f" - destination: {destination}\n - max_retries: {max_retries})"
+    )
+
+    target_file = destination / path.split('/')[-1]
+    target_chnk = target_file.with_suffix(
+        f"{target_file.suffix}.chunk"
+    )
+
+    if target_file.exists():
+        logger.debug(
+            f"File already downloaded. Skipping {target_file.name}"
+        )
+        return True
+
+    url = f"https://{host}{path}"
+
+    logger.info(
+        f"Attempting HTTPS fallback for {target_file.name}: {url}"
+    )
+
+    for retries in range(1, max_retries + 2):
+        try:
+            logger.trace(
+                f"Downloading {target_file.name} via HTTPS "
+                f"(attempt #{retries})"
+            )
+
+            with urllib.request.urlopen(url, timeout=30) as response:
+                with open(target_chnk, "wb") as local_file:
+                    shutil.copyfileobj(response, local_file)
+
+            target_chnk.replace(target_file)
+
+            logger.info(
+                f"{target_file.name} successfully downloaded via HTTPS"
+            )
+
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"Failed to download {url} via HTTPS "
+                f"on attempt #{retries}\n{e}"
+            )
+
+            if target_chnk.exists():
+                target_chnk.unlink()
+
+    logger.warning(
+        f"{target_file.name} failed to download via HTTPS!"
+    )
+
+    return False
+
 
 
 def deploy_dataset(update, max_retries):
-
     logger.trace(
         f"deploy_dataset(\n - update: {update}\n - "
         f"max_retries: {max_retries})"
@@ -284,6 +353,7 @@ def deploy_dataset(update, max_retries):
 
     # Reduce dataset size if small is selected
     size = "the full"
+
     if update:
         urls = urls[0:2]
         size = "a subselection of the"
@@ -291,34 +361,56 @@ def deploy_dataset(update, max_retries):
     hosts = extract_hosts(urls)
 
     for host in hosts.keys():
-
         paths = hosts.get(host)
 
-        logger.debug(f"Examining {host} for test dataset")
+        logger.debug(
+            f"Examining {host} for test dataset"
+        )
 
-        try:        
+        failed_paths = paths
+
+        try:
             ftp = connect_ftp(host)
-        except TimeoutError as e:
-            logger.error((
-                f"ftp connection to {host} could not be established. Are you firewalled?\n"
-                "Check whether ftp ports are openned (default is often 20, 21 or 990). "
-                "Skipping host!"
-            ))
-            continue
-        except OSError as e:
-            logger.error((
-                f"Connection was established but there was issues. Skipping {host}!!!\n{e}"
-            ))
-            continue
-        except Exception as e:
-            logger.error(
-                f"What? Something bad is going on... Skipping {host} !!!\n{e}"
-            )
-            continue
 
-        download_ftp_file(ftp, paths, READ_DIR, max_retries)
-        
-        disconnect_ftp(ftp)
+        except Exception as e:
+            logger.warning(
+                f"FTP connection to {host} failed. "
+                f"Falling back to HTTPS.\n{e}"
+            )
+
+        else:
+            try:
+                failed_paths = download_ftp_file(
+                    ftp,
+                    paths,
+                    READ_DIR,
+                    max_retries
+                )
+
+            finally:
+                disconnect_ftp(ftp)
+
+        # HTTPS fallback for the host itself or individual failed files
+        if failed_paths:
+            logger.warning(
+                f"{len(failed_paths)} file(s) from {host} "
+                "could not be downloaded via FTP. "
+                "Trying HTTPS fallback."
+            )
+
+            for path in failed_paths:
+                success = download_https_file(
+                    host,
+                    path,
+                    READ_DIR,
+                    max_retries
+                )
+
+                if not success:
+                    logger.error(
+                        f"Failed to download {path} via both "
+                        f"FTP and HTTPS."
+                    )
 
     return None
 
