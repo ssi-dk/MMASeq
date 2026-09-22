@@ -351,8 +351,7 @@ def deploy(args):
         logger.info(f"Inspecting the deployment dataset")
         deploy_dataset(update, retries)
 
-    if longtable:   
-        longtable_rule = "long_table "
+
 
     samplesheet_file = f"{DATA_DIR}/samplesheet.tsv"
 
@@ -366,6 +365,8 @@ def deploy(args):
         dataset = "test"
         samplesheet_file = f"{DATA_DIR}/samplesheet_test.tsv"
         additional_cmds += "--clean "
+    elif longtable:   
+        longtable_opt = "--longtable "
     else:
         dataset = "full"
 
@@ -385,7 +386,7 @@ def deploy(args):
         f"--threads {threads} "
         "--resolve "
         f"{additional_cmds}"
-        f"{longtable_rule}"
+        f"{longtable_opt}"
     )
     logger.debug(f"Created command for MMAseq:\n{command}")
 
