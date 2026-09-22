@@ -129,6 +129,15 @@ def parse_deploy():
     )
 
     parser.add_argument(
+        "--longtable",
+        dest="longtable",
+        action="store_true",
+        help=(
+            "Generate a long-format results table. (Default: %(default)s) "
+        )
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"MMAseq {__version__}",
@@ -332,6 +341,7 @@ def deploy(args):
     retries = args.retries
     threads = args.threads
     verbosity = args.verbosity
+    longtable = args.longtable
 
     if custom:
         logger.info("Inspecting species configuration directory")
@@ -340,6 +350,9 @@ def deploy(args):
     if not test:
         logger.info(f"Inspecting the deployment dataset")
         deploy_dataset(update, retries)
+
+    if longtable:   
+        longtable_rule = "long_table "
 
     samplesheet_file = f"{DATA_DIR}/samplesheet.tsv"
 
@@ -372,6 +385,7 @@ def deploy(args):
         f"--threads {threads} "
         "--resolve "
         f"{additional_cmds}"
+        f"{longtable_rule}"
     )
     logger.debug(f"Created command for MMAseq:\n{command}")
 
