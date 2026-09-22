@@ -351,7 +351,8 @@ def deploy(args):
         logger.info(f"Inspecting the deployment dataset")
         deploy_dataset(update, retries)
 
-
+    if longtable:   
+        longtable_opt = "--longtable "
 
     samplesheet_file = f"{DATA_DIR}/samplesheet.tsv"
 
@@ -365,8 +366,6 @@ def deploy(args):
         dataset = "test"
         samplesheet_file = f"{DATA_DIR}/samplesheet_test.tsv"
         additional_cmds += "--clean "
-    elif longtable:   
-        longtable_opt = "--longtable "
     else:
         dataset = "full"
 
