@@ -4,6 +4,7 @@ from .__version__ import __version__
 from .utils.PATH import *
 from .utils.logging_setup import initiate_log, adjust_log
 from .utils.classes import import_dataset, list_files
+from .utils.results import generate_long_results
 
 import argparse
 from pathlib import Path
@@ -398,7 +399,6 @@ def create_command(threads,
                    config_file, 
                    conda_dir,
                    force,
-                   longtable,
                    clean,
                    arguments = None):
     logger.trace(("create_command(\n"
@@ -413,9 +413,6 @@ def create_command(threads,
 
     if force:
         additionals += "--forceall "
-
-    if longtable:   
-        additionals += "long_table "
     
     if clean:
         additionals += "clean "
@@ -518,7 +515,6 @@ def mmaseq(args):
                              config_file, 
                              conda_dir,
                              force,
-                             longtable,
                              clean
                              )
 
@@ -546,7 +542,7 @@ def mmaseq(args):
     logger.info(f"Module statuses written to {module_status_file}")
 
     for module_status in module_statuses:
-        logger.info(
+        print(
             f"{module_status['sample_name']} - "
             f"{module_status['module_status']}"
         )
@@ -562,6 +558,13 @@ def mmaseq(args):
         if missing_modules:
             logger.error("Missing module results:\n - " + "\n - ".join(missing_modules))
         sys.exit(1)
+
+    if longtable:
+        long_file = outdir / "MMAseq_long.tsv"
+        long = generate_long_results(samples)
+
+        logger.info(f"Creating long table output to: {long_file}")
+        long.to_csv(long_file, sep = "\t", index = False)
 
 
 def launcher() -> None:
