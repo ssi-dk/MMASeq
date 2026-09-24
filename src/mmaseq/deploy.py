@@ -366,14 +366,14 @@ def deploy(args):
     elif test:
         dataset = "test"
         samplesheet_file = f"{DATA_DIR}/samplesheet_test.tsv"
-        additional_cmds += "--clean "
+        #additional_cmds += "--clean "
     else:
         dataset = "full"
 
 
 
     outdir = deploy_dir / "MMAseq_Test"
-    additional_cmds += f"--clean --verbosity {verbosity} "
+    additional_cmds += f"--verbosity {verbosity} "
 
     if custom:
         additional_cmds += "--custom "

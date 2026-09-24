@@ -38,7 +38,7 @@ def unpivot_results(sample, module, file, results):
 
 
 
-def generate_long_results(all_result_files):
+def generate_long_results(samples):
     """
     Generates a concatenated long-format DataFrame from all result files.
 
@@ -50,24 +50,27 @@ def generate_long_results(all_result_files):
     """
     all_sample_results = list()
 
-    for sample, modules in all_result_files.items():
+    for sample_name, sample in samples.items():
 
-        for mod, files in modules.items():
-            for file in files:
-                try:
-                    sample_results = pd.read_csv(file, sep = "\t", index_col = False)
-                except pd.errors.EmptyDataError:
-                    print(f"Results file {file.name} for {sample} is empty. Skipping!")
-                    continue
+        files = sample.all_results()
+        for file in files:
+            mod = file.parent.name
 
-                # Determine whether the long table format is already observed
-                sample_long = sample_results
-                required_columns = {
-                    "Sample", "Module", "File", "Row", "Column", "Value"
-                }
-                if not required_columns.issubset(sample_results.columns):
-                    sample_long = unpivot_results(sample, mod, file, sample_results)
+            try:
+                sample_results = pd.read_csv(file, sep = "\t", index_col = False)
+            except pd.errors.EmptyDataError:
+                print(f"Results file {file.name} for {sample_name} is empty. Skipping!")
+                continue
 
-                all_sample_results.append(sample_long)
+            # Determine whether the long table format is already observed
+            sample_long = sample_results
+
+            required_columns = {
+                "Sample", "Module", "File", "Row", "Column", "Value"
+            }
+            if not required_columns.issubset(sample_results.columns):
+                sample_long = unpivot_results(sample_name, mod, file, sample_results)
+
+            all_sample_results.append(sample_long)
 
     return pd.concat(all_sample_results, ignore_index = True)
