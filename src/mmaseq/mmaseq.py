@@ -4,7 +4,7 @@ from .__version__ import __version__
 from .utils.PATH import *
 from .utils.logging_setup import initiate_log, adjust_log
 from .utils.classes import import_dataset, list_files
-from .utils.results import generate_long_results
+from .utils.results import generate_long_results, module_statuses
 
 import argparse
 from pathlib import Path
@@ -523,41 +523,7 @@ def mmaseq(args):
     )
     run_status = execute_snakemake(command)
 
-    module_statuses = [
-        {
-            "sample_name": sample.name,
-            "module_status": module.status()
-        }
-        for sample in samples.values()
-        for module in sample.modules.values()
-        if not module.ignore
-    ]
-
-    module_status_file = outdir / "module_status.tsv"
-    pd.DataFrame(module_statuses).to_csv(
-        module_status_file,
-        sep="\t",
-        index=False
-    )
-    logger.info(f"Module statuses written to {module_status_file}")
-
-    for module_status in module_statuses:
-        print(
-            f"{module_status['sample_name']} - "
-            f"{module_status['module_status']}"
-        )
-
-    missing_modules = [
-        f"{module_status['sample_name']} - {module_status['module_status']}"
-        for module_status in module_statuses
-        if module_status["module_status"].endswith(": FAIL")
-    ]
-
-    if run_status != 0 or missing_modules:
-        logger.error("Something went wrong while executing snakemake.")
-        if missing_modules:
-            logger.error("Missing module results:\n - " + "\n - ".join(missing_modules))
-        sys.exit(1)
+    module_statuses(samples, outdir)
 
     if longtable:
         long_file = outdir / "MMAseq_long.tsv"
@@ -565,6 +531,10 @@ def mmaseq(args):
 
         logger.info(f"Creating long table output to: {long_file}")
         long.to_csv(long_file, sep = "\t", index = False)
+
+    if run_status != 0:
+        logger.error("Something went wrong while executing snakemake.")
+
 
 
 def launcher() -> None:
