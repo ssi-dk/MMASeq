@@ -58,9 +58,9 @@ class Module:
     def status(self):
 
         if self.results and all(path.exists() for path in self.results):
-            return f"{self.name}: SUCCESS"
+            return True
 
-        return f"{self.name}: FAIL"
+        return False
 
 
 @dataclass

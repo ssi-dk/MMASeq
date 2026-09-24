@@ -3,6 +3,51 @@ import pandas as pd
 from pathlib import Path
 from collections import defaultdict
 
+def module_statuses(samples, outdir):
+
+    statuses = list()
+    module_statuses = list()
+
+    for sample_name, sample in samples.items():
+        # Ensure consistency between sample class name and samples dictionary sample name
+        if sample_name is not sample.name:
+            raise ValueError("Sample class name inconsistency.\n - Sample class sample.name: {sample.name}\n - Sample dictionary sample_name: {sample_name}")
+
+        # Iterate thorugh sample modules
+        for module_name, module in sample.modules.items():
+            if module.ignore:
+                continue
+
+            # Record status for all modules
+            statuses.append(module.status())
+
+
+            status = "Missing"
+            if module.status:
+                status = "Succeeded"
+
+            module_statuses.append({
+                "sample": sample_name,
+                "module": {"name": module_name, "status": status}
+            })
+
+    module_status_file = outdir / "module_status.tsv"
+
+    pd.DataFrame(module_statuses).to_csv(
+        module_status_file,
+        sep="\t",
+        index=False
+    )
+
+    if not all(statuses):
+        for status_info in module_statuses:
+            name = status_info.get("sample")
+            module = status_info.get("module")
+            print(f"{name} - {module.get("name")}: {module.get("status")} ")
+    else:
+        print("All modules for all samples was executed successfully!")
+        
+
 def unpivot_results(sample, module, file, results):
     """
     Converts a wide-format results DataFrame to a long-format DataFrame.
