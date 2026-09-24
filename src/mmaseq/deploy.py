@@ -351,6 +351,7 @@ def deploy(args):
         logger.info(f"Inspecting the deployment dataset")
         deploy_dataset(update, retries)
 
+    longtable_opt = ""
     if longtable:   
         longtable_opt = "--longtable "
 

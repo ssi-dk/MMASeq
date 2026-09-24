@@ -415,10 +415,10 @@ def create_command(threads,
         additionals += "--forceall "
 
     if longtable:   
-        longtable_rule = "long_table "
+        additionals += "long_table "
     
     if clean:
-        clean_rule = "clean "
+        additionals += "clean "
 
     # Determine command
     command = (
@@ -430,8 +430,6 @@ def create_command(threads,
         f"--snakefile {SNAKEFILE} "
         f"--conda-prefix {conda_dir} "
         f"{additionals} "
-        f"{longtable_rule}"
-        f"{clean_rule}"
     )
 
     return command
