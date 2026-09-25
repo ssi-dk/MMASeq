@@ -79,6 +79,20 @@ def parse_deploy():
     )
 
     parser.add_argument(
+        "--keep",
+        dest="keep",
+        action="store_true",
+        help=(
+            "Keep intermediate files of the test dataset, usable for development purposes. "
+            "(Default: %(default)s) The test dataset consist of exactly "
+            "400001 paired end reads created synthetically from AI. "
+            "Certain modules will fail on these reads and are "
+            " excluded from the test. "
+            "Excluded; resfinder, pointfinder, kleborate, shovill"
+        )
+    )
+
+    parser.add_argument(
         "--retries",
         dest="retries",
         default=3,
@@ -126,6 +140,15 @@ def parse_deploy():
             "If provided, will redirect log messages from STDOUT to logfile. "
             "(Default: %(default)s) Will be ignored if logfile parent folder "
             "doesn't exist."
+        )
+    )
+
+    parser.add_argument(
+        "--longtable",
+        dest="longtable",
+        action="store_true",
+        help=(
+            "Generate a long-format results table. (Default: %(default)s) "
         )
     )
 
@@ -429,9 +452,11 @@ def deploy(args):
     update = args.update
     custom = args.custom
     test = args.test
+    keep = args.keep
     retries = args.retries
     threads = args.threads
     verbosity = args.verbosity
+    longtable = args.longtable
 
     if custom:
         logger.info("Inspecting species configuration directory")
@@ -441,6 +466,10 @@ def deploy(args):
         logger.info(f"Inspecting the deployment dataset")
         deploy_dataset(update, retries)
 
+    longtable_opt = ""
+    if longtable:   
+        longtable_opt = "--longtable "
+
     samplesheet_file = f"{DATA_DIR}/samplesheet.tsv"
 
     # Create arguments for command
@@ -448,18 +477,22 @@ def deploy(args):
     if update:
         dataset = "small"
         samplesheet_file = f"{DATA_DIR}/samplesheet_small.tsv"
-        additional_cmds += "--ignore_assemblies --force --clean "
+        additional_cmds += "--ignore_assemblies --force "
     elif test:
         dataset = "test"
         samplesheet_file = f"{DATA_DIR}/samplesheet_test.tsv"
-        additional_cmds += "--clean "
+        additional_cmds += " "
     else:
         dataset = "full"
 
+    clean = "--clean "
+    if keep:
+        clean = ""
 
+    additional_cmds += clean
 
     outdir = deploy_dir / "MMAseq_Test"
-    additional_cmds += f"--clean --verbosity {verbosity} "
+    additional_cmds += f"--verbosity {verbosity} "
 
     if custom:
         additional_cmds += "--custom "
@@ -472,6 +505,7 @@ def deploy(args):
         f"--threads {threads} "
         "--resolve "
         f"{additional_cmds}"
+        f"{longtable_opt}"
     )
     logger.debug(f"Created command for MMAseq:\n{command}")
 
