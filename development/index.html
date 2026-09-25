@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://ssiutility.dk/development/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Development guide - MMASeq Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Development guide";
+        var mkdocs_page_input_path = "development.md";
+        var mkdocs_page_url = "/development/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="..">
+          <img src="../assets/MMASeq_logo.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../description/">Description</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../supported_analysis/">Supported Analysis</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../tools_databases/">Tools and Databases</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../tutorials/">Tutorials</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../references/">References</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">MMASeq Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Development guide</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="development-guide">Development guide</h1>
+<p>You are very welcome to contribute to the repository.
+The repository structure and pipeline foundation can be a bit confusing though, this page aims at explaining how you can fork the repository to your own github account, then how to install mmaseq in general and how to deploy your own changes, first locally and later to push them to the official repository.</p>
+<h2 id="local-development">Local development</h2>
+<ul>
+<li>First time: Install MMAseq locally through its conda package (e.g. <code>micromamba create -n mmaseq bioconda::mmaseq --yes</code>)</li>
+<li>For the repository on GitHub using the "Fork" button on the MMAseq repository site</li>
+<li>Download and clone your fork <code>git clone https://github.com/[YOURgithubUSER]/MMASeq.git ~/repos/mmaseq</code></li>
+<li>Navigate into the repo folder <code>cd ~/repos/mmaseq</code></li>
+<li>Activate the propper enviornment (e.g. <code>micromamba activate mmaseq</code>)</li>
+<li>Create and switch to a new branch henceforth reffered as [BRANCH] ( e.g. <code>git switch -c patch_shovill_fix</code>)</li>
+<li>Make your changes in whatever branch you wish (dev default), and install them locally <code>pip install ~/repos/mmaseq</code></li>
+<li>Once satisfied, push your changes to your own fork <code>git push origin [BRANCH]</code></li>
+<li>On your own fork, navigate to Pull requests tab and click New Pull Request, select <strong>base repository</strong>: <em>ssi-dk/MMAseq</em> <strong>base</strong>: <em>dev</em> and <strong>head repository</strong>: <em>[YOURgithubUSER]/MMAseq</em> <strong>compare</strong>: <em>[BRANCH]</em> </li>
+</ul>
+<h2 id="type-of-change">Type of Change</h2>
+<p>Add a label to this PR by commenting one of the following:
+- <code>/build</code> - Minor documentation or general repository. These changes will not increment the software version upon successful merge
+- <code>/patch</code> - Bugfixes and typos
+- <code>/minor</code> - New features and software enhancements
+- <code>/major</code> - Backwards incompatible changes (collaborators only)</p>
+<p><strong>Note:</strong> The label check waits 20 seconds before reading labels. Comment your label immediately after creating the PR to ensure the check passes.</p>
+<h2 id="checklist">Checklist</h2>
+<p>Before creating a Pull request for your changes, you can save time by completing the following steps in advance, on you local repository.</p>
+<h3 id="special-case">Special case</h3>
+<h3 id="setup-required-for-all-prs">Setup (Required for all PRs)</h3>
+<ul>
+<li>[ ] I have installed the local branch (e.g. using <code>pip install .</code> in an appropriate virtual environment)</li>
+</ul>
+<h3 id="for-adding-or-removing-modules">For Adding or Removing Modules</h3>
+<ul>
+<li>[ ] I have added my new module to / removed the old module from - the appropriate <code>.smk</code> file:</li>
+<li><code>PR_analysis.smk</code> for paired-end reads</li>
+<li><code>SR_analysis.smk</code> for single-end reads</li>
+<li><code>analysis.smk</code> for assembly-based analysis</li>
+<li>[ ] I have checked that the rule Output follows correct file naming conventions</li>
+<li>[ ] I have created/updated the appropriate species config in <code>mmaseq/src/mmaseq/config/species_configs/</code></li>
+<li>[ ] I have added/removed the module alongside its configuration to both <code>test.yaml</code> and <code>all.yaml</code></li>
+<li>[ ] I have included a sample and added its ftp link to <code>mmaseq/src/mmaseq/data/reads/reads.urls</code></li>
+<li>[ ] I have updated the samplesheet at <code>mmaseq/src/mmaseq/data/samplesheet.tsv</code> (if needed)</li>
+<li>[ ] I have run a minimal test using <code>mmadeploy --test</code> and confirmed that my module completed succesfully</li>
+<li>[ ] I have added the <code>minor</code> label to my PR</li>
+</ul>
+<h3 id="for-other-pipeline-changes">For other pipeline Changes</h3>
+<ul>
+<li>[ ] I have that all my changes work using <code>mmadeploy --update</code></li>
+<li>[ ] I have added the <code>patch</code> OR <code>minor</code> label (depending on the type of changes) to my PR</li>
+</ul>
+<h2 id="related-issues">Related Issues</h2>
+<!-- Link any related issues: Closes #123 -->
+              
+            </div>
+          </div><footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>The MIT License (MIT)  Copyright © 2023 Statens Serum Institut</p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
