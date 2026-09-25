@@ -87,20 +87,6 @@ rule copy:
         """
 
 
-
-rule long_table:
-    input:
-        files = rules.copy.output.files,
-        versions = rules.versions.output.versions_file
-    output:
-        long = outdir / "results_long.tsv"
-    message:
-        "[long_table]: Generating long-format results table"
-    run:
-        results_long = ResultsAggregator(samples).generate_long_results()
-        results_long.to_csv(output.long, sep="\t", index=False)
-
-
 rule clean:
     input:
         raw = rules.copy.input.raw,
