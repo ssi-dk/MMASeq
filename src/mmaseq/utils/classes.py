@@ -58,9 +58,9 @@ class Module:
     def status(self):
 
         if self.results and all(path.exists() for path in self.results):
-            return f"{self.name}: Success"
+            return True
 
-        return f"{self.name}: Missing"
+        return False
 
 
 @dataclass
@@ -206,6 +206,106 @@ class Sample:
         return self
 
 
+
+
+class ResultsAggregator:
+    """
+    A class to aggregate results from multiple samples and modules into a long-format DataFrame.
+    """
+
+    def __init__(self, samples: dict[str, Sample]):
+        """
+        Initializes the ResultsAggregator with a dictionary of Sample objects.
+
+        Args:
+            samples (dict): A dictionary where keys are sample names and values are Sample objects.
+        """
+        self.samples = samples
+
+    def generate_long_results(self) -> pd.DataFrame:
+        """
+        Generates a concatenated long-format DataFrame from all result files.
+
+        Returns:
+            Concatenated long-format DataFrame from all result files. If no
+            usable result files are available, returns an empty DataFrame with
+            the expected columns.
+        """
+        long_results = []
+
+        for sample_name, sample in self.samples.items():
+            for module_name, module in sample.modules.items():
+                if module.ignore or not module.results:
+                    continue
+
+                for file in module.results:
+                    try:
+                        sample_results = pd.read_csv(file, sep="\t", index_col=False)
+                    except pd.errors.EmptyDataError:
+                        print(
+                            f"Results file {file.name} for {sample_name} is empty. "
+                            "Skipping!"
+                        )
+                        continue
+
+                    # Determine whether the long table format is already observed
+                    sample_long = sample_results
+                    required_columns = {
+                        "Sample", "Module", "File", "Row", "Column", "Value"
+                    }
+                    if not required_columns.issubset(sample_results.columns):
+                        sample_long = self.unpivot_results(
+                            sample_name, module_name, file, sample_results
+                        )
+
+                    long_results.append(sample_long)
+
+        if not long_results:
+            return pd.DataFrame(
+                columns=["Sample", "Module", "File", "Row", "Column", "Value"]
+            )
+
+        return pd.concat(long_results, ignore_index=True)
+
+    def unpivot_results(self, sample, module, file, results) -> pd.DataFrame:
+        """
+        Unpivots a results DataFrame into a long-format DataFrame.
+
+        Args:
+            sample (str): Sample name.
+            module (str): Module name.
+            file (Path): Path object of the results file.
+            results (pd.DataFrame): DataFrame containing the results.
+
+        Returns:
+            pd.DataFrame: Long-format DataFrame with columns Sample, Module, File, Row, Column, Value.
+        """
+        # Convert index to row number column starting from row 1 without
+        # mutating the caller's DataFrame.
+        results = results.copy()
+        results.index += 1
+        results = results.reset_index(names="Row")
+
+        # Generate long list format of results file
+        results_long = results.melt(
+            id_vars="Row",
+            var_name="Column",
+            value_name="Value"
+        )
+
+        # add columns in a single assignment (faster than multiple insert calls)
+        results_long[["Sample", "Module", "File"]] = [sample, module, file.name]
+
+        # if you want a specific column order:
+        cols = ["Sample", "Module", "File", "Row", "Column", "Value"]
+        results_long = results_long[cols]
+
+        return results_long
+
+
+
+
+
 def as_list(value):
     if not value:
         return []
@@ -284,4 +384,3 @@ def list_files(samples, raw = False):
                 files.append(res_file)
 
     return files
-

@@ -10,7 +10,8 @@ import sys
 import collections
 import ftplib
 import shutil
-
+import urllib.request
+from urllib.parse import urlparse
 
 def parse_deploy():
     parser = argparse.ArgumentParser(
@@ -78,6 +79,20 @@ def parse_deploy():
     )
 
     parser.add_argument(
+        "--keep",
+        dest="keep",
+        action="store_true",
+        help=(
+            "Keep intermediate files of the test dataset, usable for development purposes. "
+            "(Default: %(default)s) The test dataset consist of exactly "
+            "400001 paired end reads created synthetically from AI. "
+            "Certain modules will fail on these reads and are "
+            " excluded from the test. "
+            "Excluded; resfinder, pointfinder, kleborate, shovill"
+        )
+    )
+
+    parser.add_argument(
         "--retries",
         dest="retries",
         default=3,
@@ -129,6 +144,15 @@ def parse_deploy():
     )
 
     parser.add_argument(
+        "--longtable",
+        dest="longtable",
+        action="store_true",
+        help=(
+            "Generate a long-format results table. (Default: %(default)s) "
+        )
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"MMAseq {__version__}",
@@ -158,14 +182,18 @@ def deploy_spe_configs(deploy_dir):
 
 def extract_hosts(urls):
     logger.trace(f"extract_hosts(urls = {urls})")
+
     hosts = collections.defaultdict(list)
+
     for url in urls:
-        host, *path_list = url.replace('ftp://', '').split('/')
-        path = f"/{'/'.join(path_list)}"
+        parsed_url = urlparse(url)
+
+        host = parsed_url.netloc
+        path = parsed_url.path
+
         hosts[host].append(path)
 
     return hosts
-
 
 def connect_ftp(host, timeout = 15):
     logger.trace(f"Connecting to {host}")
@@ -201,18 +229,19 @@ def disconnect_ftp(ftp):
 
 
 def download_ftp_file(ftp, paths, destination, max_retries):
-
     logger.trace(
         f"download_ftp_file(\n - ftp: {ftp}\n - paths: {paths}\n - "
         f"destination: {destination}\n - max_retries: {max_retries})"
     )
 
-    for path in paths:
+    failed_paths = []
 
-        # Define target file and download chunk file
+    for path in paths:
         target_file = destination / path.split('/')[-1]
-        target_chnk = target_file.with_suffix(f"{target_file.suffix}.chunk")
-                
+        target_chnk = target_file.with_suffix(
+            f"{target_file.suffix}.chunk"
+        )
+
         # Remove old chunks if already exists
         if target_chnk.exists():
             logger.warning(
@@ -223,57 +252,129 @@ def download_ftp_file(ftp, paths, destination, max_retries):
 
         # Abort if the file exists
         if target_file.exists():
-            logger.debug(f"File already downloaded. Skipping {target_file.name}")
+            logger.debug(
+                f"File already downloaded. Skipping {target_file.name}"
+            )
             continue
 
-        logger.info(f"Test sample missing. Downloading {target_file.name}")
+        logger.info(
+            f"Test sample missing. Downloading {target_file.name}"
+        )
 
-        success = False    
+        success = False
         retries = 0
+
         while retries <= max_retries:
             retries += 1
 
             try:
-
                 logger.trace(
                     f"Downloading {target_file.name} as {target_chnk}"
                 )
 
                 with open(target_chnk, 'wb') as local_file:
-                    ftp.retrbinary(f'RETR {path}', local_file.write)
+                    ftp.retrbinary(
+                        f'RETR {path}',
+                        local_file.write
+                    )
 
                 logger.trace(
                     f"Renaming {target_chnk.name} to {target_file.name}"
                 )
-                target_chnk.replace(target_file)
-                
-                success = True
 
-                retries = max_retries + 1
+                target_chnk.replace(target_file)
+
+                success = True
+                break
 
             except Exception as e:
                 logger.error(
-                    f"Failed to download {path} on attempt #{retries}\n{e}"
+                    f"Failed to download {path} on attempt "
+                    f"#{retries}\n{e}"
                 )
-            finally:
-                if target_file.exists() and not success:
-                    logger.warning(
-                        f"Download was unsuccessful, but target does exist: "
-                        f"{target_file}. Something is wrong - Deleting!"
-                    )
-                    target_file.unlink()
 
-        # Want to introduce status messages here.
+                if target_chnk.exists():
+                    target_chnk.unlink()
+
         if success:
             logger.trace(
-                f"{target_file.name} was successfully downloaded into {READ_DIR}"
+                f"{target_file.name} was successfully downloaded "
+                f"into {destination}"
             )
         else:
-            logger.warning(f"{target_file.name} failed to download!")
+            logger.warning(
+                f"{target_file.name} failed to download via FTP!"
+            )
+            failed_paths.append(path)
+
+    return failed_paths
+
+
+def download_https_file(host, path, destination, max_retries):
+    logger.trace(
+        f"download_https_file(\n - host: {host}\n - path: {path}\n"
+        f" - destination: {destination}\n - max_retries: {max_retries})"
+    )
+
+    target_file = destination / path.split('/')[-1]
+    target_chnk = target_file.with_suffix(
+        f"{target_file.suffix}.chunk"
+    )
+
+    if target_file.exists():
+        logger.debug(
+            f"File already downloaded. Skipping {target_file.name}"
+        )
+        return True
+
+    url = f"https://{host}{path}"
+
+    logger.info(
+        f"Attempting HTTPS fallback for {target_file.name}: {url}"
+    )
+
+    for retries in range(1, max_retries + 2):
+        try:
+            logger.trace(
+                f"Downloading {target_file.name} via HTTPS "
+                f"(attempt #{retries})"
+            )
+
+            with urllib.request.urlopen(url, timeout=30) as response:
+                with open(target_chnk, "wb") as local_file:
+                    shutil.copyfileobj(response, local_file)
+
+            logger.trace(
+                f"Renaming {target_chnk.name} to {target_file.name}"
+            )
+
+            target_chnk.replace(target_file)
+
+            logger.info(
+                f"{target_file.name} successfully downloaded "
+                f"via HTTPS into {destination}"
+            )
+
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"Failed to download {url} via HTTPS "
+                f"on attempt #{retries}\n{e}"
+            )
+
+            if target_chnk.exists():
+                target_chnk.unlink()
+
+    logger.warning(
+        f"{target_file.name} failed to download via HTTPS!"
+    )
+
+    return False
+
 
 
 def deploy_dataset(update, max_retries):
-
     logger.trace(
         f"deploy_dataset(\n - update: {update}\n - "
         f"max_retries: {max_retries})"
@@ -284,6 +385,7 @@ def deploy_dataset(update, max_retries):
 
     # Reduce dataset size if small is selected
     size = "the full"
+
     if update:
         urls = urls[0:2]
         size = "a subselection of the"
@@ -291,34 +393,55 @@ def deploy_dataset(update, max_retries):
     hosts = extract_hosts(urls)
 
     for host in hosts.keys():
-
         paths = hosts.get(host)
 
-        logger.debug(f"Examining {host} for test dataset")
+        logger.debug(
+            f"Examining {host} for test dataset"
+        )
 
-        try:        
+        failed_paths = paths
+
+        try:
             ftp = connect_ftp(host)
-        except TimeoutError as e:
-            logger.error((
-                f"ftp connection to {host} could not be established. Are you firewalled?\n"
-                "Check whether ftp ports are openned (default is often 20, 21 or 990). "
-                "Skipping host!"
-            ))
-            continue
-        except OSError as e:
-            logger.error((
-                f"Connection was established but there was issues. Skipping {host}!!!\n{e}"
-            ))
-            continue
-        except Exception as e:
-            logger.error(
-                f"What? Something bad is going on... Skipping {host} !!!\n{e}"
-            )
-            continue
 
-        download_ftp_file(ftp, paths, READ_DIR, max_retries)
-        
-        disconnect_ftp(ftp)
+        except Exception as e:
+            logger.warning(
+                f"FTP connection to {host} failed. "
+                f"Falling back to HTTPS.\n{e}"
+            )
+
+        else:
+            try:
+                failed_paths = download_ftp_file(
+                    ftp,
+                    paths,
+                    READ_DIR,
+                    max_retries
+                )
+
+            finally:
+                disconnect_ftp(ftp)
+
+        if failed_paths:
+            logger.warning(
+                f"{len(failed_paths)} file(s) from {host} "
+                "will be attempted via HTTPS."
+            )
+
+            for path in failed_paths:
+                success = download_https_file(
+                    host,
+                    path,
+                    READ_DIR,
+                    max_retries
+                )
+
+                if not success:
+                    logger.error(
+                        f"Failed to download {path} via both "
+                        f"FTP and HTTPS."
+                    )
+                    raise RuntimeError(f"Unable to download dataset files")
 
     return None
 
@@ -329,9 +452,11 @@ def deploy(args):
     update = args.update
     custom = args.custom
     test = args.test
+    keep = args.keep
     retries = args.retries
     threads = args.threads
     verbosity = args.verbosity
+    longtable = args.longtable
 
     if custom:
         logger.info("Inspecting species configuration directory")
@@ -341,6 +466,10 @@ def deploy(args):
         logger.info(f"Inspecting the deployment dataset")
         deploy_dataset(update, retries)
 
+    longtable_opt = ""
+    if longtable:   
+        longtable_opt = "--longtable "
+
     samplesheet_file = f"{DATA_DIR}/samplesheet.tsv"
 
     # Create arguments for command
@@ -348,18 +477,22 @@ def deploy(args):
     if update:
         dataset = "small"
         samplesheet_file = f"{DATA_DIR}/samplesheet_small.tsv"
-        additional_cmds += "--ignore_assemblies --force --clean "
+        additional_cmds += "--ignore_assemblies --force "
     elif test:
         dataset = "test"
         samplesheet_file = f"{DATA_DIR}/samplesheet_test.tsv"
-        additional_cmds += "--clean "
+        additional_cmds += " "
     else:
         dataset = "full"
 
+    clean = "--clean "
+    if keep:
+        clean = ""
 
+    additional_cmds += clean
 
     outdir = deploy_dir / "MMAseq_Test"
-    additional_cmds += f"--clean --verbosity {verbosity} "
+    additional_cmds += f"--verbosity {verbosity} "
 
     if custom:
         additional_cmds += "--custom "
@@ -372,6 +505,7 @@ def deploy(args):
         f"--threads {threads} "
         "--resolve "
         f"{additional_cmds}"
+        f"{longtable_opt}"
     )
     logger.debug(f"Created command for MMAseq:\n{command}")
 

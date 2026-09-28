@@ -4,6 +4,7 @@ from .__version__ import __version__
 from .utils.PATH import *
 from .utils.logging_setup import initiate_log, adjust_log
 from .utils.classes import import_dataset, list_files
+from .utils.results import generate_long_results, module_statuses
 
 import argparse
 from pathlib import Path
@@ -126,6 +127,15 @@ def parse_mmaseq():
             "pipeline. Use this option to enforce the pipeline to create "
             "assemblies (Will take extra time) rather than relying on those "
             "specified in the samplesheet."
+        )
+    )
+
+    parser.add_argument(
+        "--longtable",
+        dest="longtable",
+        action="store_true",
+        help=(
+            "Generate a long-format results table. (Default: %(default)s) "
         )
     )
 
@@ -403,11 +413,9 @@ def create_command(threads,
 
     if force:
         additionals += "--forceall "
-           
-    target_rule = "copy "
     
     if clean:
-        target_rule = "clean "
+        additionals += "clean "
 
     # Determine command
     command = (
@@ -419,7 +427,6 @@ def create_command(threads,
         f"--snakefile {SNAKEFILE} "
         f"--conda-prefix {conda_dir} "
         f"{additionals} "
-        f"{target_rule}"
     )
 
     return command
@@ -442,6 +449,7 @@ def mmaseq(args):
     clean = args.clean
     custom = args.custom
     force = args.force
+    longtable = args.longtable
     ignore_assemblies = args.ignore_assemblies
 
     # Resolve other objects
@@ -513,11 +521,20 @@ def mmaseq(args):
     logger.info(
         "Executing pipeline for Mixed Microbial Analysis on Sequencing data"
     )
-    status = execute_snakemake(command)
+    run_status = execute_snakemake(command)
 
-    if status != 0:
+    module_statuses(samples, outdir)
+
+    if longtable:
+        long_file = outdir / "MMAseq_long.tsv"
+        long = generate_long_results(samples)
+
+        logger.info(f"Creating long table output to: {long_file}")
+        long.to_csv(long_file, sep = "\t", index = False)
+
+    if run_status != 0:
         logger.error("Something went wrong while executing snakemake.")
-        sys.exit(1)
+
 
 
 def launcher() -> None:

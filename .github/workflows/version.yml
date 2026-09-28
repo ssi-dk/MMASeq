@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "LABEL=${{
             contains(github.event.pull_request.labels.*.name, 'major') && 'major' ||
-            contains(github.event.pull_request.labels.*.name, 'feature') && 'feature' ||
+            contains(github.event.pull_request.labels.*.name, 'minor') && 'minor' ||
             contains(github.event.pull_request.labels.*.name, 'patch') && 'patch'
           }}" >> $GITHUB_OUTPUT
 
