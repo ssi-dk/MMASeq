@@ -533,8 +533,11 @@ def mmaseq(args):
         long.to_csv(long_file, sep = "\t", index = False)
 
     if run_status != 0:
-        logger.error("Something went wrong while executing snakemake.")
-
+        logger.error(
+            f"Something went wrong while executing snakemake "
+            f"(exit code {run_status})."
+        )
+        sys.exit(run_status if run_status > 0 else 1)
 
 
 def launcher() -> None:
