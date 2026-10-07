@@ -1,3 +1,5 @@
 name: mlst
+channels:
+  - conda-forge
 dependencies:
   - bioconda::mlst

@@ -1,3 +1,5 @@
 name: plasmidfinder
+channels:
+  - conda-forge
 dependencies:
   - bioconda::plasmidfinder==2.1.6
