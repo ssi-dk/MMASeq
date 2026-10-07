@@ -534,6 +534,7 @@ def mmaseq(args):
 
     if run_status != 0:
         logger.error("Something went wrong while executing snakemake.")
+        sys.exit(1)
 
 
 
