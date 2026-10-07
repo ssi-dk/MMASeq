@@ -1,3 +1,5 @@
 name: bowtie2
+channels:
+  - conda-forge
 dependencies:
   - bioconda::bowtie2

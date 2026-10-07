@@ -1,3 +1,5 @@
 name: skesa
+channels:
+  - conda-forge
 dependencies:
   - bioconda::skesa
