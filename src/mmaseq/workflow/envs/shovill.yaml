@@ -1,4 +1,6 @@
 name: shovill
+channels:
+  - conda-forge
 dependencies:
   - bioconda::shovill
   - conda-forge::python<3.12

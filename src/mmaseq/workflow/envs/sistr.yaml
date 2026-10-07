@@ -1,4 +1,6 @@
 name: sistr_cmd
+channels:
+  - conda-forge
 dependencies:
   - bioconda::sistr_cmd
   - conda-forge::numpy>=1.11.1,<2.0

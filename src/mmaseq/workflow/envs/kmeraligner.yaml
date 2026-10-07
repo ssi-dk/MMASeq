@@ -1,4 +1,6 @@
 name: kma
+channels:
+  - conda-forge
 dependencies:
   - bioconda::kma
   - conda-forge::curl
