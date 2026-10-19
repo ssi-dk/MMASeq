@@ -77,21 +77,20 @@ rule copy:
         "[copy_results] Copying results files"
     shell:
         """
-        set -euo pipefail
-        mkdir -p "$(dirname {log.stdout:q})"
-        : > {log.stdout:q}
-        raw_files=({input.raw:q})
-        result_files=({output.files:q})
+        raw_files=({input.raw})
+        result_files=({output.files})
         if (( ${{#raw_files[@]}} != ${{#result_files[@]}} )); then
-            echo "Source and destination file counts differ" >&2
+            echo "Source and destination file counts differ" > {log.stdout} 2>&1
             exit 1
         fi
-        for i in "${{!raw_files[@]}}"; do
-            raw_file="${{raw_files[$i]}}"
-            result_file="${{result_files[$i]}}"
-            mkdir -p "$(dirname "$result_file")"
-            printf 'Copying %s to %s\n' "$raw_file" "$result_file" | tee -a {log.stdout:q}
-            cp -p -- "$raw_file" "$result_file"
+        echo "Copying results files from raw location to final destination" > {log.stdout}
+        for file in $raw_files; do
+            RAWDIR=$(dirname "$file")
+            NEWDIR=$(echo "$RAWDIR" | sed 's#/raw/#/#')
+
+            cmd="cp -f $file $NEWDIR/"
+            echo "Executing command:\n$cmd\n" >> {log.stdout}
+            eval $cmd >> {log.stdout} 2>&1                
         done
         """
 
@@ -102,18 +101,17 @@ rule clean:
     params:
         raw_dirs = [str(sample.rawdir) for sample in samples.values()]
     log:
-        stdout = "%s/clean.log" %logdir
+        stdout = f"{logdir}/clean.log"
     message:
         "[clean_results]: Removing intermediate result folders"
     shell:
         """
-        set -euo pipefail
-        mkdir -p "$(dirname {log.stdout:q})"
-        : > {log.stdout:q}
-        for raw_dir in {params.raw_dirs:q}; do
-            if [[ -d "$raw_dir" ]]; then
-                printf 'Removing %s\n' "$raw_dir" | tee -a {log.stdout:q}
-                rm -rf -- "$raw_dir"
+        echo "Cleaning up intermediate dirs" > {log.stdout}
+        for raw_dir in {params.raw_dirs}; do
+            if [ -d "$raw_dir" ]; then
+                cmd="rm -r -- $raw_dir"
+                echo "Executing command:\n$cmd\n" >> {log.stdout}
+                eval $cmd >> {log.stdout} 2>&1                
             fi
         done
         """
