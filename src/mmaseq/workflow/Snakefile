@@ -65,6 +65,7 @@ rule versions:
 
 
 rule copy:
+    default_target: True
     input:
         raw = raw_files,
         versions_file = rules.versions.output.versions_file
@@ -76,33 +77,44 @@ rule copy:
         "[copy_results] Copying results files"
     shell:
         """
-        for FILE in {input.raw}; do
-            RAWDIR=$(dirname $FILE)
-            NEWDIR=$(echo "$RAWDIR" | sed 's#/raw/#/#')
-            
-            echo "Copying $FILE to $NEWDIR/" >> {log.stdout} 2>&1
-            mkdir -p $NEWDIR
-            cp -f $FILE $NEWDIR/
+        set -euo pipefail
+        mkdir -p "$(dirname {log.stdout:q})"
+        : > {log.stdout:q}
+        raw_files=({input.raw:q})
+        result_files=({output.files:q})
+        if (( ${{#raw_files[@]}} != ${{#result_files[@]}} )); then
+            echo "Source and destination file counts differ" >&2
+            exit 1
+        fi
+        for i in "${{!raw_files[@]}}"; do
+            raw_file="${{raw_files[$i]}}"
+            result_file="${{result_files[$i]}}"
+            mkdir -p "$(dirname "$result_file")"
+            printf 'Copying %s to %s\n' "$raw_file" "$result_file" | tee -a {log.stdout:q}
+            cp -p -- "$raw_file" "$result_file"
         done
         """
 
 
 rule clean:
     input:
-        raw = rules.copy.input.raw,
         files = rules.copy.output.files,
+    params:
+        raw_dirs = [str(sample.rawdir) for sample in samples.values()]
     log:
         stdout = "%s/clean.log" %logdir
     message:
-        "[clean_results]: Removing intermediate folders"
+        "[clean_results]: Removing intermediate result folders"
     shell:
         """
-        for DIR in $(dirname {input.raw}); do
-           RAW=$(dirname $DIR)
-           if [ -d "$RAW" ]; then 
-               echo "Removing $RAW" > {log.stdout} 2>&1
-               rm -r $RAW
-           fi
+        set -euo pipefail
+        mkdir -p "$(dirname {log.stdout:q})"
+        : > {log.stdout:q}
+        for raw_dir in {params.raw_dirs:q}; do
+            if [[ -d "$raw_dir" ]]; then
+                printf 'Removing %s\n' "$raw_dir" | tee -a {log.stdout:q}
+                rm -rf -- "$raw_dir"
+            fi
         done
         """
 

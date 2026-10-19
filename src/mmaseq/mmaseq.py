@@ -3,8 +3,7 @@
 from .__version__ import __version__
 from .utils.PATH import *
 from .utils.logging_setup import initiate_log, adjust_log
-from .utils.classes import import_dataset, list_files
-from .utils.results import generate_long_results, module_statuses
+from .utils.classes import ResultsAggregator, import_dataset, list_files
 
 import argparse
 from pathlib import Path
@@ -164,11 +163,26 @@ def parse_mmaseq():
         )
     )
 
+
+     
+    parser.add_argument(
+        "--latency_wait",
+        dest="latency_wait",
+        type=int,
+        default=0,
+        help=(
+            "Snakemake option: Wait said seconds if an output file of a job is not present after the job finished."
+            " This helps with  if the filesystem suffers from latency"
+            "(Default: %(default)s) "
+        )
+    )
+
     parser.add_argument(
         "--version",
         action="version",
         version=f"MMAseq {__version__}",
-    )
+    )    
+
 
     return parser.parse_args()
 
@@ -400,12 +414,14 @@ def create_command(threads,
                    conda_dir,
                    force,
                    clean,
+                   latency_wait,
                    arguments = None):
     logger.trace(("create_command(\n"
                   f"config_file={config_file}\n"
                   f"conda_dir={conda_dir}\n"
                   f"force={force}\n"
                   f"clean={clean}\n"
+                  f"latency_wait={latency_wait}\n"
                   f"arguments={arguments})"))
 
     # Define arguments and rules as a single string
@@ -426,6 +442,7 @@ def create_command(threads,
         f"--configfile {config_file} "
         f"--snakefile {SNAKEFILE} "
         f"--conda-prefix {conda_dir} "
+        f"--latency-wait {latency_wait} "
         f"{additionals} "
     )
 
@@ -451,6 +468,7 @@ def mmaseq(args):
     force = args.force
     longtable = args.longtable
     ignore_assemblies = args.ignore_assemblies
+    latency_wait = args.latency_wait
 
     # Resolve other objects
     conda_dir = (deploy_dir / "conda").resolve()
@@ -460,6 +478,7 @@ def mmaseq(args):
                   f"outdir: {outdir}\n - "
                   f"threads: {threads}\n - "
                   f"resolve: {resolve}\n - "
+                  f"latency_wait: {latency_wait}\n - "
                   f"ignore_assemblies: {ignore_assemblies}\n - "
                   f"conda_dir: {conda_dir}"))
 
@@ -515,7 +534,8 @@ def mmaseq(args):
                              config_file, 
                              conda_dir,
                              force,
-                             clean
+                             clean,
+                             latency_wait
                              )
 
     logger.info(
@@ -523,18 +543,21 @@ def mmaseq(args):
     )
     run_status = execute_snakemake(command)
 
-    module_statuses(samples, outdir)
+    results_aggregator = ResultsAggregator(samples)
+    results_aggregator.module_statuses(outdir)
 
-    if longtable:
-        long_file = outdir / "MMAseq_long.tsv"
-        long = generate_long_results(samples)
-
-        logger.info(f"Creating long table output to: {long_file}")
-        long.to_csv(long_file, sep = "\t", index = False)
-
+    # Checked before creating the long table, as missing results from a failed
+    # run would otherwise make that crash and hide the actual error
     if run_status != 0:
         logger.error("Something went wrong while executing snakemake.")
         sys.exit(1)
+
+    if longtable:
+        long_file = outdir / "MMAseq_long.tsv"
+        long = results_aggregator.generate_long_results()
+
+        logger.info(f"Creating long table output to: {long_file}")
+        long.to_csv(long_file, sep = "\t", index = False)
 
 
 

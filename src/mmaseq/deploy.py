@@ -153,6 +153,18 @@ def parse_deploy():
     )
 
     parser.add_argument(
+        "--latency_wait",
+        dest="latency_wait",
+        type=int,
+        default=0,
+        help=(
+            "Snakemake option: Wait said seconds if an output file of a job is not present after the job finished."
+            " This helps with  if the filesystem suffers from latency"
+            "(Default: %(default)s) "
+        )
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"MMAseq {__version__}",
@@ -457,6 +469,7 @@ def deploy(args):
     threads = args.threads
     verbosity = args.verbosity
     longtable = args.longtable
+    latency_wait = args.latency_wait
 
     if custom:
         logger.info("Inspecting species configuration directory")
@@ -503,6 +516,7 @@ def deploy(args):
         f"--deploy_dir {deploy_dir} "
         f"--outdir {outdir} "
         f"--threads {threads} "
+        f"--latency_wait {latency_wait} "
         "--resolve "
         f"{additional_cmds}"
         f"{longtable_opt}"

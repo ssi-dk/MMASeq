@@ -222,6 +222,47 @@ class ResultsAggregator:
         """
         self.samples = samples
 
+    def module_statuses(self, outdir: Path) -> None:
+        """Write module completion status for each configured sample."""
+        statuses = []
+        module_statuses = []
+
+        for sample_name, sample in self.samples.items():
+            if sample_name != sample.name:
+                raise ValueError(
+                    "Sample class name inconsistency.\n"
+                    f" - Sample class sample.name: {sample.name}\n"
+                    f" - Sample dictionary sample_name: {sample_name}"
+                )
+
+            for module_name, module in sample.modules.items():
+                if module.ignore:
+                    continue
+
+                succeeded = module.status()
+                statuses.append(succeeded)
+                module_statuses.append({
+                    "sample": sample_name,
+                    "module": {
+                        "name": module_name,
+                        "status": "Succeeded" if succeeded else "Missing",
+                    },
+                })
+
+        module_status_file = outdir / "module_status.tsv"
+        pd.DataFrame(module_statuses).to_csv(
+            module_status_file,
+            sep="\t",
+            index=False,
+        )
+
+        if not all(statuses):
+            for status_info in module_statuses:
+                module = status_info["module"]
+                print(f"{status_info['sample']} - {module['name']}: {module['status']}")
+        else:
+            print("All modules for all samples was executed successfully!")
+
     def generate_long_results(self) -> pd.DataFrame:
         """
         Generates a concatenated long-format DataFrame from all result files.
@@ -253,7 +294,12 @@ class ResultsAggregator:
                     required_columns = {
                         "Sample", "Module", "File", "Row", "Column", "Value"
                     }
-                    if not required_columns.issubset(sample_results.columns):
+                    if required_columns.issubset(sample_results.columns):
+                        # The sample sheet is authoritative. Some tools include
+                        # assembler-specific prefixes in their Sample field.
+                        sample_long = sample_results.copy()
+                        sample_long["Sample"] = sample_name
+                    else:
                         sample_long = self.unpivot_results(
                             sample_name, module_name, file, sample_results
                         )

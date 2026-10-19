@@ -2,5 +2,5 @@ name: kleborate
 channels:
   - conda-forge
 dependencies:
-  - bioconda::kleborate
+  - bioconda::kleborate<3.3.0b1
   - bioconda::ezclermont
