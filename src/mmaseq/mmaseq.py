@@ -432,6 +432,8 @@ def create_command(threads,
     
     if clean:
         additionals += "clean "
+    else:
+        additionals += "--no-temp copy "
 
     # Determine command
     command = (

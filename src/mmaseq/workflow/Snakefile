@@ -77,20 +77,23 @@ rule copy:
         "[copy_results] Copying results files"
     shell:
         """
-        raw_files=({input.raw})
-        result_files=({output.files})
+        raw_files={input.raw}
+        sample_dir=$(dirname $(dirname $raw_files))
+        result_files={output.files}
         if (( ${{#raw_files[@]}} != ${{#result_files[@]}} )); then
             echo "Source and destination file counts differ" > {log.stdout} 2>&1
             exit 1
         fi
+
         echo "Copying results files from raw location to final destination" > {log.stdout}
         for file in $raw_files; do
-            RAWDIR=$(dirname "$file")
-            NEWDIR=$(echo "$RAWDIR" | sed 's#/raw/#/#')
+            raw_dir=$(dirname $file)
+            no_raw=$(echo $raw_dir | sed 's#/raw/#/#')
+            results_dir=$(dirname $no_raw)
+            target_file="$results_dir/$(basename $file)"
 
-            cmd="cp -f $file $NEWDIR/"
+            cmd="cp $file $target_file"
             echo "Executing command:\n$cmd\n" >> {log.stdout}
-            eval $cmd >> {log.stdout} 2>&1                
         done
         """
 

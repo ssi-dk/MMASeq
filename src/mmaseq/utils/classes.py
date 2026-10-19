@@ -185,7 +185,7 @@ class Sample:
             results = None
             if not ignr:
                 raw = [self.rawdir / module_dir / f"{module}{ext}" for ext in exts]
-                results = [self.outdir / module_dir / f"{module}{ext}" for ext in exts]
+                results = [self.outdir / f"{module}{ext}" for ext in exts]
 
             mod = Module(
                 name = module,
