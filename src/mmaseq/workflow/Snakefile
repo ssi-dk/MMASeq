@@ -68,7 +68,7 @@ rule copy:
     default_target: True
     input:
         raw = raw_files,
-        versions_file = rules.versions.output.versions_file
+        #versions_file = rules.versions.output.versions_file
     output:
         files = result_files
     log:
@@ -77,13 +77,8 @@ rule copy:
         "[copy_results] Copying results files"
     shell:
         """
-        raw_files={input.raw}
-        sample_dir=$(dirname $(dirname $raw_files))
-        result_files={output.files}
-        if (( ${{#raw_files[@]}} != ${{#result_files[@]}} )); then
-            echo "Source and destination file counts differ" > {log.stdout} 2>&1
-            exit 1
-        fi
+        raw_files=({input.raw:q})
+        result_files=({output.files:q})
 
         echo "Copying results files from raw location to final destination" > {log.stdout}
         for file in $raw_files; do
@@ -94,6 +89,7 @@ rule copy:
 
             cmd="cp $file $target_file"
             echo "Executing command:\n$cmd\n" >> {log.stdout}
+            eval $cmd >> {log.stdout} 2>&1                
         done
         """
 
