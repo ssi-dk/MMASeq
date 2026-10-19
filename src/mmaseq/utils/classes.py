@@ -175,17 +175,19 @@ class Sample:
             # Determine sample read type
             read_type = self.inputs.read_type
 
+            pre_ext = ""
             read_str = ""
             if rds and read_type:
-                read_str = f"{read_type}/"
+                read_str = f"{read_type}"
+                pre_ext = f"_{read_type}"
 
-            module_dir = f"{read_str}{module}"
+            module_dir = f"{read_str}/{module}"
             
             raw = None
             results = None
             if not ignr:
                 raw = [self.rawdir / module_dir / f"{module}{ext}" for ext in exts]
-                results = [self.outdir / f"{module}{ext}" for ext in exts]
+                results = [self.outdir / f"{module}{pre_ext}{ext}" for ext in exts]
 
             mod = Module(
                 name = module,

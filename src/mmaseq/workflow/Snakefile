@@ -65,10 +65,9 @@ rule versions:
 
 
 rule copy:
-    default_target: True
     input:
         raw = raw_files,
-        #versions_file = rules.versions.output.versions_file
+#ARRRGGGG        versions_file = rules.versions.output.versions_file
     output:
         files = result_files
     log:
@@ -77,41 +76,40 @@ rule copy:
         "[copy_results] Copying results files"
     shell:
         """
-        raw_files=({input.raw:q})
-        result_files=({output.files:q})
-
-        echo "Copying results files from raw location to final destination" > {log.stdout}
-        for file in $raw_files; do
-            raw_dir=$(dirname $file)
-            no_raw=$(echo $raw_dir | sed 's#/raw/#/#')
-            results_dir=$(dirname $no_raw)
-            target_file="$results_dir/$(basename $file)"
-
-            cmd="cp $file $target_file"
-            echo "Executing command:\n$cmd\n" >> {log.stdout}
-            eval $cmd >> {log.stdout} 2>&1                
+        
+        for FILE in {input.raw}; do
+            echo "FILE: $FILE"
+            RAWDIR=$(dirname $FILE)
+            echo "RAWDIR: $RAWDIR"
+            noraw=$(echo "$RAWDIR" | sed 's#/raw/#/#')
+            echo "noraw: $noraw"
+            NEWDIR=$(dirname $noraw)
+            echo "NEWDIR: $NEWDIR"
+            
+            echo "Copying $FILE to $NEWDIR/" >> {log.stdout} 2>&1
+            echo "cp -f $FILE $NEWDIR/"
+            cp -f $FILE $NEWDIR/
         done
         """
 
 
 rule clean:
     input:
-        files = rules.copy.output.files,
-    params:
-        raw_dirs = [str(sample.rawdir) for sample in samples.values()]
+        raw = rules.copy.input.raw,
+        files = rules.copy.output.files
     log:
-        stdout = f"{logdir}/clean.log"
+        stdout = "%s/clean.log" %logdir
     message:
-        "[clean_results]: Removing intermediate result folders"
+        "[clean_results]: Removing intermediate folders"
     shell:
         """
         echo "Cleaning up intermediate dirs" > {log.stdout}
-        for raw_dir in {params.raw_dirs}; do
-            if [ -d "$raw_dir" ]; then
-                cmd="rm -r -- $raw_dir"
-                echo "Executing command:\n$cmd\n" >> {log.stdout}
-                eval $cmd >> {log.stdout} 2>&1                
-            fi
+        for DIR in $(dirname {input.raw}); do
+           RAW=$(dirname $DIR)
+           if [ -d "$RAW" ]; then 
+               echo "Removing $RAW" > {log.stdout} 2>&1
+               rm -r $RAW
+           fi
         done
         """
 
