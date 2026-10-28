@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 
 def initiate_log(name):
@@ -55,25 +56,29 @@ def adjust_log(logger, verbosity, logfile=None):
             "Ignoring user input, verbosity set to 0!"
         )
 
-    # Generate log formatter
-    _formatter = logging.Formatter(logformat, "%H:%M:%S")
+    # Ignore logfile if its parent folder doesn't exist
+    if logfile is not None and not Path(logfile).parent.is_dir():
+        print(
+            "Warning: "
+            f"Parent folder of logfile {logfile} doesn't exist.\n"
+            "Ignoring logfile, writing messages to terminal!"
+        )
+        logfile = None
 
-    _handler = logging.StreamHandler()
+    # Generate log formatter and handler, writing to logfile if provided.
+    # The handler is attached directly to the logger, as messages aren't
+    # propagated to the root logger
+    if logfile is not None:
+        print(f"Writing messages to logfile: {logfile}")
+        _formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
+        _handler = logging.FileHandler(logfile, mode="w")
+    else:
+        _formatter = logging.Formatter(logformat, "%H:%M:%S")
+        _handler = logging.StreamHandler()
+
     _handler.setFormatter(_formatter)
 
     # Setup logger object
     logger.addHandler(_handler)
     logger.propagate = False
     logger.setLevel(level)
-
-    # Define log file
-    if logfile is not None:
-        print(f"Writing messages to logfile: {logfile}")
-
-        # Define where to write logfile
-        logging.basicConfig(
-            filename=logfile,
-            filemode="w",
-            format="%(asctime)s - %(levelname)s: %(message)s",
-            level=level
-        )

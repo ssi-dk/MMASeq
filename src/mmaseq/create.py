@@ -123,9 +123,24 @@ def create_samplesheet(args):
 
             # Investigate read files
             if path.suffixes in [[".fastq", ".gz"], [".fq", ".gz"]]:
-                sample = re.sub(
-                    r'(_R?[12])_?\d*\.(fastq|fq)\.gz$', '', str(file)
+                # Determine sample name and read mate from the end of the file
+                # name, so sample names containing e.g. "_1" aren't mistaken
+                # for mates. Explicit R1/R2 mates (SAMPLE_R1_001.fastq.gz) are
+                # preferred over bare ones (SAMPLE_1.fastq.gz)
+                match = (
+                    re.fullmatch(r'(.+)_R([12])(_\d+)?\.(fastq|fq)\.gz', str(file))
+                    or re.fullmatch(r'(.+)_([12])(_\d+)?\.(fastq|fq)\.gz', str(file))
                 )
+
+                if not match:
+                    # Provide warnings for unknown naming conventions
+                    logger.warning(
+                        f"Read mate {path} was not recognized. "
+                        f"Inspect samplesheet manually! Ignoring file..."
+                    )
+                    continue
+
+                sample, mate = match.group(1), match.group(2)
 
                 logger.trace(f"Found {sample} with read file: {path}")
                 records.setdefault(
@@ -138,17 +153,8 @@ def create_samplesheet(args):
                     }
                 )
 
-                # Record read mates based on specified suffixes
-                if re.search(r"(_R?1\D?|_1\D?)", str(file)):
-                    records[sample]["read1"] = str(path)
-                elif re.search(r"(_R?2\D?|_2\D?)", str(file)):
-                    records[sample]["read2"] = str(path)
-                else:
-                    # Provide warnings for unknown naming conventions
-                    logger.warning(
-                        f"Read mate {path} was not recognized. "
-                        f"Inspect samplesheet manually! Ignoring file for {sample}..."
-                    )
+                # Record read mate
+                records[sample][f"read{mate}"] = str(path)
 
     # Collect records into a data frame
     samplesheet = (

@@ -23,9 +23,6 @@ rule long_kmeraligner:
         OUTDIR=$(dirname {output.results})
         mkdir -p $OUTDIR
 
-        SAMDIR=$(dirname {output.sam})
-        mkdir -p $SAMDIR
-
         cmd="kma -i {input.R1} -o $OUTDIR/{wildcards.database} -t_db {params.prefix_db} -na -nc -nf -matrix -1t1 {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
@@ -260,7 +257,7 @@ rule long_lrefinder:
         OUTDIR=$(dirname {output.results})
         mkdir -p $OUTDIR
 
-        cmd="python {SCRIPTS_DIR}/LRE-Typer.py -ires {input.res} -imat {input.matrix} -o {output.results} {params.options}"
+        cmd="python {SCRIPTS_DIR}/LRE-Typer.py -i {input.res} -m {input.matrix} -o {output.results} {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1

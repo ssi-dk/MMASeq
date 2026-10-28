@@ -157,7 +157,14 @@ class Sample:
         for module, components in configs_raw.items():
             opt = components.get("options", "")
             db = as_list(components.get("database"))
-            if self.assembly() and not ignore_assemblies:
+            # Only modules run on an assembly use the samplesheet assembly,
+            # and only if it exists, as missing assemblies are not linked
+            if (
+                self.assembly()
+                and self.assembly().exists()
+                and not ignore_assemblies
+                and components.get("assembler")
+            ):
                 asm = ["UnkwnAsmblr"]
             else:
                 asm = as_list(components.get("assembler"))
