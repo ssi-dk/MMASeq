@@ -43,9 +43,9 @@ rule blastn:
 
         # Write a header first so the file is self-describing (BLAST outfmt 6 has none),
         # otherwise the results aggregator consumes the first hit as column names.
-        printf 'qseqid\tsseqid\tpident\tqlen\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\n' > {output.results}
+        printf 'qseqid\tsseqid\tpident\tslen\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\n' > {output.results}
 
-        cmd="blastn -subject {input.database} -query {input.assembly} -outfmt '6 qseqid sseqid pident qlen length mismatch gapopen qstart qend sstart send evalue bitscore' {params.options} >> {output.results}"
+        cmd="blastn -subject {input.database} -query {input.assembly} -outfmt '6 qseqid sseqid pident slen length mismatch gapopen qstart qend sstart send evalue bitscore' {params.options} >> {output.results}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
