@@ -51,6 +51,7 @@ class Module:
     config: dict = field(default_factory=dict)
     raw: list[Path] = field(default_factory=list)
     results: list[Path] = field(default_factory=list)
+    logfile: Path
 
 
     def status(self):
@@ -59,6 +60,10 @@ class Module:
             return True
 
         return False
+
+    def show_log(self, verboisty):
+        self.logfile.read_text()
+        
 
 
 @dataclass
@@ -412,7 +417,7 @@ def determine_outfile_exts(reads, database, assembly):
     return [f"{asm}.tsv" for asm in asm_strings]
 
 
-def import_dataset(samplesheet_path, config_dir, outpath, ignore_assemblies):
+def import_dataset(samplesheet_path, config_dir, outpath, ignore_assemblies, logdir):
 
     samplesheet = pd.read_csv(
         samplesheet_path,
