@@ -423,7 +423,12 @@ def import_dataset(samplesheet_path, config_dir, outpath, ignore_assemblies):
         config_file = config_dir / config
 
         if not config_file.exists():
-            raise FileNotFoundError(f"Configuration file not found - Check your samplesheet: {config_file}.")
+            print(f"Warning: Configuration file {config} not found, reverting to 'default.yaml'.\n - Check the configuration folder: {config_dir}\n - OR check your samplesheet: {samplesheet_path}.")
+            config = "default.yaml"
+            config_file = config_dir / config
+            if not config_file.exists():
+                raise FileNotFoundError(f"The default configuration file could not be found. If you didn't use the `--custom` flag, reinstall MMAseq!")
+            
 
         smpl = Sample(name = sample, config_file = config_file, inputs = Input(read1, read2, assembly), outdir = outpath / sample).populate_modules(ignore_assemblies)
 
