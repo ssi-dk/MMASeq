@@ -455,4 +455,4 @@ def list_files(samples, raw = False):
 
 
 # Shares the launcher's logger, as only that has handlers attached
-logger = initiate_log("MMAseq")
+logger = initiate_log("Sample Classes")
