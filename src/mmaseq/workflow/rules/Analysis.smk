@@ -55,7 +55,7 @@ rule blastn:
 rule minimap2_cdiff:
     input:
         assembly = rules.assembly.output.assembly,
-        database =  f"{database_dir}/custom/CdiffToxins.fasta",
+        database =  f"{database_dir}/custom/CdiffToxins.fasta",  ## Should support a generalistic approach, but for now hardcoding and dedication of this tool for cdiff seems to be the only quick fix
     params:
         options = lambda wc: sample(wc).options("minimap2")
     output:
