@@ -21,10 +21,7 @@ amrfinder:
     assembler: shovill
     options: ""
 
-meningotype:
-    assembler: shovill
-
-kmeraligner:
-    database: elmDB
-    options : -ID 80 -1t1 -cge
-    reads: True
+blastn:
+  options: "-perc_identity 99.0"
+  assembler: shovill
+  database : OXAndm
