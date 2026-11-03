@@ -404,7 +404,8 @@ def link_assemblies(
                 f"Creating symlink: {assembly_path} -> {destination}"
             ))
             
-            destination.symlink_to(assembly_path)
+            # Relative link targets resolve from the link's directory, not CWD
+            destination.symlink_to(assembly_path.resolve())
     
     return None
 
