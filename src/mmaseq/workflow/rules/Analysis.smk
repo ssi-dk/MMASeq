@@ -52,10 +52,10 @@ rule blastn:
         """
 
 
-rule minimap2:
+rule minimap2_cdiff:
     input:
         assembly = rules.assembly.output.assembly,
-        database = rules.fetch_genbank.output.fasta
+        database =  f"{database_dir}/custom/CdiffToxins.fasta",
     params:
         options = lambda wc: sample(wc).options("minimap2")
     output:
@@ -667,7 +667,7 @@ rule deletion_identifier:
         indels_index = rules.bcftools_filter_indels.output.index,
         variants = rules.bcftools_variant_call.output.results,
         variants_index = rules.bcftools_variant_call.output.index,
-        asm_aln = rules.minimap2.output.results
+        asm_aln = rules.minimap2_cdiff.output.results
     params:
         options  = lambda wc: sample(wc).options("deletion_identifier"),
         metafile = f"{SCREENING_DIR}/deletion_metafile.tsv"
