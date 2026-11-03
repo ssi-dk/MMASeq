@@ -280,6 +280,7 @@ def create_config(samplesheet_file,
                   force,
                   deploy_dir,
                   species_configs,
+                  logdir,
                   verbosity
                   ):
 
@@ -290,6 +291,7 @@ def create_config(samplesheet_file,
                   f"force = {force}\n"
                   f"deploy_dir = {deploy_dir}\n"
                   f"species_configs = {species_configs}\n"
+                  f"logdir = {logdir]\n"
                   f"verbosity: {verbosity}"
                   ")"))
 
@@ -472,6 +474,7 @@ def mmaseq(args):
     latency_wait = args.latency_wait
 
     # Resolve other objects
+    logdir = outdir / "Logs"
     conda_dir = (deploy_dir / "conda").resolve()
     logger.trace((f"User arguments and deduced variables:\n - "
                   f"samplesheet_file: {samplesheet_file}\n - "
@@ -510,13 +513,14 @@ def mmaseq(args):
         logger.info("Species configurations folder successfully detected.")
 
     logger.debug("Creating pipeline configuration file")
-    config_file = create_config(samplesheet_file, 
-                           outdir,
-                           ignore_assemblies,
-                           force,
-                           deploy_dir,
-                           species_configs,
-                           args.verbosity
+    config_file = create_config(samplesheet_file = samplesheet_file, 
+                           outdir = outdir,
+                           ignore_assemblies = ignore_assemblies,
+                           force = force,
+                           deploy_dir = deploy_dir,
+                           species_configs = species_configs,
+                           logdir = logdir,     
+                           verbosity = args.verbosity
                            )
 
     samples = import_dataset(samplesheet_file, species_configs, outdir, ignore_assemblies)
