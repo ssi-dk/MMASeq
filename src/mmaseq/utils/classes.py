@@ -266,12 +266,12 @@ class ResultsAggregator:
         )
 
         if not all(statuses):
-            print("The following samples showed module failures:")
+            logger.warning("The following samples showed module failures:")
             for status_info in module_statuses:
                 module = status_info["module"]
                 print(f"{status_info['sample']} - {module['name']}: {module['status']}")
         else:
-            print("All modules for all samples was executed successfully!")
+            logger.info("All modules for all samples was executed successfully!")
 
     def generate_long_results(self) -> pd.DataFrame:
         """
@@ -300,7 +300,7 @@ class ResultsAggregator:
                     try:
                         sample_results = pd.read_csv(file, sep="\t", index_col=False)
                     except pd.errors.EmptyDataError:
-                        print(
+                        logger.warning(
                             f"Results file {file.name} for {sample_name} is empty. "
                             "Skipping!"
                         )
@@ -430,7 +430,13 @@ def import_dataset(samplesheet_path, config_dir, outpath, ignore_assemblies):
         config_file = config_dir / config
 
         if not config_file.exists():
-            raise FileNotFoundError(f"Configuration file not found - Check your samplesheet: {config_file}.")
+            logger.warning(f"Configuration file {config} not found, reverting to 'default.yaml'.\n - Check the configuration folder: {config_dir}\n - OR check your samplesheet: {samplesheet_path}.")
+            config = "default.yaml"
+            config_file = config_dir / config
+            if not config_file.exists():
+                logger.error("The default configuration file could not be found")
+                raise FileNotFoundError(f"{config_file} not found. If you see this error but DID NOT use the `--custom` flag, the installation is corrupt! -> Reinstall MMAseq!")
+            
 
         smpl = Sample(name = sample, config_file = config_file, inputs = Input(read1, read2, assembly), outdir = outpath / sample).populate_modules(ignore_assemblies)
 
@@ -456,4 +462,4 @@ def list_files(samples, raw = False):
 
 
 # Shares the launcher's logger, as only that has handlers attached
-logger = initiate_log("MMAseq")
+logger = initiate_log("Sample Classes")
