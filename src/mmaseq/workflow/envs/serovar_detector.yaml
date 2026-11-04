@@ -2,7 +2,7 @@ name: serovar_detector
 channels:
   - conda-forge
 dependencies:
-  - bioconda::serovar_detector
+  - bioconda::serovar_detector>1.1.4
   - bioconda::blast
   - bioconda::kma
   - conda-forge::r-essentials
