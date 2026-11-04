@@ -414,7 +414,7 @@ rule paired_serovar_detector:
         """
         OUTDIR=$(dirname {output.results})
 
-        cmd="serovar_detector -1 {input.R1} -2 {input.R2} -o $OUTDIR -t 1 {params.options}"
+        cmd="serovar_detector -1 {input.R1} -2 {input.R2} -o $OUTDIR -t 1 --noconda {params.options}"
 
         echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
         eval $cmd >> {log.stdout} 2>&1
