@@ -21,6 +21,9 @@ amrfinder:
     assembler: shovill
     options: ""
 
+rmlst:
+  assembler: spades
+
 blastn:
   options: "-perc_identity 99.0"
   assembler: shovill
