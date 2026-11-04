@@ -3,3 +3,8 @@ channels:
   - conda-forge
 dependencies:
   - bioconda::serovar_detector
+  - bioconda::blast
+  - bioconda::kma
+  - conda-forge::r-essentials
+  - conda-forge::r-logger
+  - conda-forge::r-yaml
