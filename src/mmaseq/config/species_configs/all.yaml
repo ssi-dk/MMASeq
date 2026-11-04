@@ -69,6 +69,9 @@ chtyper:
 mlst:
     assembler: shovill  
 
+rmlst:
+  assembler: spades
+
 blastn:
     options: "-perc_identity 90.0"
     assembler: shovill
