@@ -80,6 +80,22 @@ rule minimap2:
 
 ### Characterizers ###
 
+rule rmlst:
+    input:
+        assembly = rules.assembly.output.assembly
+    output:
+        results = f"{outdir}/{{sample}}/raw/rmlst/rmlst_{{assembler}}.tsv"
+    log:
+        stdout = f"{logdir}/amrfinder_{{assembler}}_{{sample}}.log"
+    message:
+        "[rMLST]: Running rMLST species identification for {wildcards.sample} using ({wildcards.assembler}) contigs"
+    shell:
+        """
+        cmd="python {SCRIPTS_DIR}/rMLST.py -f {input.assembly} -o {output.results}
+        echo "Executing command:\n$cmd\n" > {log.stdout} 2>&1
+        eval $cmd >> {log.stdout} 2>&1
+        """
+
 rule amrfinder:
     input:
         assembly = rules.assembly.output.assembly,
