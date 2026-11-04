@@ -13,6 +13,13 @@ parser.add_argument(
     help = "Output tsv file path."
 )
 parser.add_argument(
+    "--assemblers", "-a",
+    type = str,
+    dest = "assemblers",
+    default = None,
+    help = "List of assemblers, is used to strip assemblers from sample_files for name extraction."
+  )
+parser.add_argument(
   '--file_list', '-f',
   type = str,
   nargs = '+',
@@ -20,9 +27,14 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-def main(assembly_file):
+def main(assembly_file, assemblers):
   all_good = True
-  sample = str(assembly_file.name.stem)
+  sample = str(assembly_file.stem)
+
+  # Remove assemblers naming from the sample name (should only be one per run)
+  if assemblers:
+    for assembler in assemblers:
+      sample = sample.rstrip(f"_{assembler}")
   print(sample, flush = True)
   
   uri = 'https://rest.pubmlst.org/db/pubmlst_rmlst_seqdef_kiosk/schemes/1/sequence'
@@ -87,7 +99,7 @@ if __name__ == "__main__":
   rmlst = pd.DataFrame()
 
   for assembly_file in assemblies:
-    match = main(assembly_file)
+    match = main(assembly_file, args.assemblers)
 
     if match is not None:
       matches.append(match)
