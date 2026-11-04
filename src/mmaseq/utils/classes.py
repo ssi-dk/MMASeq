@@ -80,6 +80,10 @@ class Sample:
     def assembly(self):
         return self.inputs.assembly
 
+    def assembler(self, module):
+        if module in self.modules:
+            return self.modules.get(module).assembler
+
 
     def options(self, module):
         if module in self.modules:
