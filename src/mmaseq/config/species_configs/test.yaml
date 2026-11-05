@@ -81,6 +81,8 @@ spatyper:
 # seqsero2: # MacOS
 #    assembler: spades
 
+rmlst:
+  assembler: spades
 
 sistr:
   assembler: spades
