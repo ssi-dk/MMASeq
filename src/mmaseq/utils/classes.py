@@ -51,10 +51,11 @@ class Module:
     config: dict = field(default_factory=dict)
     raw: list[Path] = field(default_factory=list)
     results: list[Path] = field(default_factory=list)
-    logfile: Path
+    logfile: Path | None = None
 
 
-    def status(self):
+    @property
+    def success(self):
 
         if self.results and all(path.exists() for path in self.results):
             return True
@@ -62,7 +63,8 @@ class Module:
         return False
 
     def show_log(self, verboisty):
-        self.logfile.read_text()
+        if verboisty > 0:
+            print(self.logfile.read_text())
         
 
 
@@ -87,26 +89,31 @@ class Sample:
 
 
     def options(self, module):
-        if module in self.modules:
-            return self.modules.get(module).options
+        for mod, module_object in self.modules.items():
+            if module in module_object.name:
+                return module_object.options
 
         return ''
 
+
     def configs(self, module, section):
-        if module in self.modules:
-            return self.modules.get(module).config.get(section)
+        for mod, module_object in self.modules.items():
+            if module in module_object.name:
+                return module_object.config.get(section)
 
 
     def raw(self, module):
-        if module in self.modules.keys():
-            return self.modules.get(module).raw
+        for mod, module_object in self.modules.items():
+            if module in module_object.name:
+                return module_object.raw
 
         return ''
 
 
     def results(self, module):
-        if module in self.modules.keys():
-            return self.modules.get(module).results
+        for mod, module_object in self.modules.items():
+            if module in module_object.name:
+                return module_object.results
 
         return ''
 
@@ -145,7 +152,7 @@ class Sample:
         return all_results
 
 
-    def populate_modules(self, ignore_assemblies):
+    def populate_modules(self, ignore_assemblies, logdir):
         modules = {}
 
         static_fields = [
@@ -200,21 +207,38 @@ class Sample:
                 raw = [self.rawdir / module_dir / f"{module}{ext}".lstrip("/") for ext in exts]
                 results = [self.outdir / f"{module}{ext}".lstrip("/") for ext in exts]
             
-            mod = Module(
-                name = module,
-                options = opt,
-                database = db,
-                assembler = asm,
-                ignore = ignr,
-                reads = rds,
-                config = config,
-                raw = raw,
-                results = results
-            )
+            for attr in product(db, asm):
 
-            modules.update({module : mod})
+                module_name = f"{module}"
 
-        self.modules = modules
+                if None in attr:
+
+                    if not attr[0]:
+                        module_name = f"{module}_{attr[1]}"
+                    elif not attr[1]:
+                        module_name = f"{module}_{attr[0]}"
+                else:
+                    module_name = f"{module}_{attr[0]}_{attr[1]}"
+                
+                log_file = logdir / f"{module_name}_{self.name}.log"
+                
+
+                mod = Module(
+                    name = module,
+                    options = opt,
+                    database = db,
+                    assembler = asm,
+                    ignore = ignr,
+                    reads = rds,
+                    config = config,
+                    raw = raw,
+                    results = results,
+                    logfile = log_file
+                )
+
+                modules.update({module_name : mod})
+
+                self.modules = modules
 
         return self
 
@@ -235,7 +259,7 @@ class ResultsAggregator:
         """
         self.samples = samples
 
-    def module_statuses(self, outdir: Path) -> None:
+    def module_statuses(self, outdir: Path, verbosity) -> None:
         """Write module completion status for each configured sample."""
         statuses = []
         module_statuses = []
@@ -252,7 +276,7 @@ class ResultsAggregator:
                 if module.ignore:
                     continue
 
-                succeeded = module.status()
+                succeeded = module.success
                 statuses.append(succeeded)
                 if not succeeded:
                     module_statuses.append({
@@ -262,6 +286,9 @@ class ResultsAggregator:
                             "status": "Failed",
                         },
                     })
+
+                    module.show_log(verbosity)
+
 
         module_status_file = outdir / "module_status.tsv"
         pd.DataFrame(module_statuses).to_csv(
@@ -368,7 +395,7 @@ class ResultsAggregator:
         )
 
         # add columns in a single assignment (faster than multiple insert calls)
-        results_long[["Sample", "Module", "File"]] = [sample, module, file.name]
+        results_long[["Sample", "Module", "File"]] = [sample, module.name, file.name]
 
         # if you want a specific column order:
         cols = ["Sample", "Module", "File", "Row", "Column", "Value"]
@@ -417,10 +444,10 @@ def determine_outfile_exts(reads, database, assembly):
     return [f"{asm}.tsv" for asm in asm_strings]
 
 
-def import_dataset(samplesheet_path, config_dir, outpath, ignore_assemblies, logdir):
+def import_dataset(samplesheet_file, config_dir, outpath, ignore_assemblies, logdir):
 
     samplesheet = pd.read_csv(
-        samplesheet_path,
+        samplesheet_file,
         sep='\t'
     ).set_index("sample_name")
 
@@ -435,7 +462,7 @@ def import_dataset(samplesheet_path, config_dir, outpath, ignore_assemblies, log
         config_file = config_dir / config
 
         if not config_file.exists():
-            logger.warning(f"Configuration file {config} not found, reverting to 'default.yaml'.\n - Check the configuration folder: {config_dir}\n - OR check your samplesheet: {samplesheet_path}.")
+            logger.warning(f"Configuration file {config} not found, reverting to 'default.yaml'.\n - Check the configuration folder: {config_dir}\n - OR check your samplesheet: {samplesheet_file}.")
             config = "default.yaml"
             config_file = config_dir / config
             if not config_file.exists():
@@ -443,7 +470,15 @@ def import_dataset(samplesheet_path, config_dir, outpath, ignore_assemblies, log
                 raise FileNotFoundError(f"{config_file} not found. If you see this error but DID NOT use the `--custom` flag, the installation is corrupt! -> Reinstall MMAseq!")
             
 
-        smpl = Sample(name = sample, config_file = config_file, inputs = Input(read1, read2, assembly), outdir = outpath / sample).populate_modules(ignore_assemblies)
+        smpl = Sample(
+            name = sample,
+            config_file = config_file,
+            inputs = Input(read1, read2, assembly),
+            outdir = outpath / sample
+        ).populate_modules(
+            ignore_assemblies = ignore_assemblies,
+            logdir = logdir
+        )
 
         samples.update({sample: smpl})
 

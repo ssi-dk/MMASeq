@@ -291,7 +291,7 @@ def create_config(samplesheet_file,
                   f"force = {force}\n"
                   f"deploy_dir = {deploy_dir}\n"
                   f"species_configs = {species_configs}\n"
-                  f"logdir = {logdir]\n"
+                  f"logdir = {logdir}\n"
                   f"verbosity: {verbosity}"
                   ")"))
 
@@ -319,6 +319,7 @@ def create_config(samplesheet_file,
         "species_configs": str(species_configs),
         "ignore_assemblies": ignore_assemblies,
         "outdir": str(outdir),
+        "logdir": str(logdir),
         "verbosity": int(verbosity)
     }
 
@@ -472,6 +473,7 @@ def mmaseq(args):
     longtable = args.longtable
     ignore_assemblies = args.ignore_assemblies
     latency_wait = args.latency_wait
+    verbosity = args.verbosity
 
     # Resolve other objects
     logdir = outdir / "Logs"
@@ -520,10 +522,16 @@ def mmaseq(args):
                            deploy_dir = deploy_dir,
                            species_configs = species_configs,
                            logdir = logdir,     
-                           verbosity = args.verbosity
+                           verbosity = verbosity
                            )
 
-    samples = import_dataset(samplesheet_file, species_configs, outdir, ignore_assemblies)
+    samples = import_dataset(
+        samplesheet_file = samplesheet_file,
+        config_dir = species_configs,
+        outpath = outdir,
+        ignore_assemblies = ignore_assemblies,
+        logdir = logdir
+    )
 
     if ignore_assemblies or force:
         logger.info("Assemblies in samplesheet will not replace "
@@ -549,7 +557,10 @@ def mmaseq(args):
     run_status = execute_snakemake(command)
 
     results_aggregator = ResultsAggregator(samples)
-    results_aggregator.module_statuses(outdir)
+    results_aggregator.module_statuses(
+        outdir = outdir,
+        verbosity = verbosity
+    )
 
     # Created before checking the Snakemake exit status, so the results of the
     # modules that succeeded are still collected when others failed
