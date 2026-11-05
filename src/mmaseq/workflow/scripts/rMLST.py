@@ -34,7 +34,7 @@ def main(assembly_file, assemblers):
   # Remove assemblers naming from the sample name (should only be one per run)
   if assemblers:
     for assembler in assemblers:
-      sample = sample.rstrip(f"_{assembler}")
+      sample = sample.lstrip(f"{assembler}_")
   print(sample, flush = True)
   
   uri = 'https://rest.pubmlst.org/db/pubmlst_rmlst_seqdef_kiosk/schemes/1/sequence'
