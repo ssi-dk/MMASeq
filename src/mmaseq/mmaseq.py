@@ -557,10 +557,6 @@ def mmaseq(args):
     run_status = execute_snakemake(command)
 
     results_aggregator = ResultsAggregator(samples)
-    results_aggregator.module_statuses(
-        outdir = outdir,
-        verbosity = verbosity
-    )
 
     # Created before checking the Snakemake exit status, so the results of the
     # modules that succeeded are still collected when others failed
@@ -573,6 +569,17 @@ def mmaseq(args):
 
     if run_status != 0:
         logger.error("Something went wrong while executing snakemake.")
+
+        print("\n#####################################")
+        logger.info("Creating module status report.")
+        logger.debug(f"Including logs.")
+
+        for smpl in samples:
+            sample = samples.get(smpl)
+            sample.show_failed(verbosity)
+
+        print("#####################################")
+
         sys.exit(1)
 
 

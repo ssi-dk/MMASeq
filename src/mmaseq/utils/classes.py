@@ -57,7 +57,7 @@ class Module:
     @property
     def success(self):
 
-        if self.results and all(path.exists() for path in self.results):
+        if self.raw and all(path.exists() for path in self.raw) or self.ignore:
             return True
 
         return False
@@ -152,6 +152,18 @@ class Sample:
                     all_results.append(res)
 
         return all_results
+
+
+    def show_failed(self, verbosity):
+        for mod in self.modules:
+            module = self.modules.get(mod)
+
+            if not module.success and module.logfile.exists():
+                print(f"{self.name}-{mod}: Failed!")
+                if verbosity > 0:
+                    show_failed_logs(module)
+            elif not module.success:
+                print(f"{self.name}-{mod}: Not executed!")
 
 
     def populate_modules(self, ignore_assemblies, logdir):
@@ -400,7 +412,11 @@ class ResultsAggregator:
         return results_long
 
 
-
+def show_failed_logs(module):
+            if module.logfile.exists():
+                print(f"\n{(Path(module.logfile).read_text())}\n")
+            else:
+                print(f"No log file created!")
 
 
 def as_list(value):
