@@ -88,8 +88,9 @@ class Sample:
         return self.inputs.assembly
 
     def assembler(self, module):
-        if module in self.modules:
-            return self.modules.get(module).assembler
+        for mod, module_object in self.modules.items():
+            if module == module_object.name:
+                module_object.assembler
 
 
     def options(self, module):
