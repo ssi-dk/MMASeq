@@ -10,12 +10,12 @@ snp_identifier:
 deletion_identifier:
     options: --organism 'Clostridioides difficile' --deletion_region_buffer 5 --overlap_fraction 0.5
     database: CdiffToxins
-    assembler: [spades]
+    assembler: spades
 
 minimap2:
     options: -ax asm5 --cs
     database: CdiffToxins
-    assembler: [spades]
+    assembler: spades
     ignore: True
 
 cdiff_repeat_identifier:
