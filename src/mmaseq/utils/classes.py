@@ -62,8 +62,8 @@ class Module:
 
         return False
 
-    def show_log(self, verboisty):
-        if verboisty > 0:
+    def show_log(self, verbosity):
+        if verbosity > 0 and self.logfile.exists():
             print(self.logfile.read_text())
         
 
@@ -90,7 +90,7 @@ class Sample:
 
     def options(self, module):
         for mod, module_object in self.modules.items():
-            if module in module_object.name:
+            if module == module_object.name:
                 return module_object.options
 
         return ''
@@ -98,13 +98,15 @@ class Sample:
 
     def configs(self, module, section):
         for mod, module_object in self.modules.items():
-            if module in module_object.name:
+            if module == module_object.name:
                 return module_object.config.get(section)
+
+        return ''
 
 
     def raw(self, module):
         for mod, module_object in self.modules.items():
-            if module in module_object.name:
+            if module == module_object.name:
                 return module_object.raw
 
         return ''
@@ -112,7 +114,7 @@ class Sample:
 
     def results(self, module):
         for mod, module_object in self.modules.items():
-            if module in module_object.name:
+            if module == module_object.name:
                 return module_object.results
 
         return ''
@@ -207,19 +209,19 @@ class Sample:
                 raw = [self.rawdir / module_dir / f"{module}{ext}".lstrip("/") for ext in exts]
                 results = [self.outdir / f"{module}{ext}".lstrip("/") for ext in exts]
             
-            for attr in product(db, asm):
+            db_values = db or [None]
+            asm_values = asm or [None]
 
-                module_name = f"{module}"
+            for db_value, asm_value in product(db_values, asm_values):
 
-                if None in attr:
+                suffix = "_".join(
+                    str(value)
+                    for value in (db_value, asm_value)
+                    if value is not None
+                )
 
-                    if not attr[0]:
-                        module_name = f"{module}_{attr[1]}"
-                    elif not attr[1]:
-                        module_name = f"{module}_{attr[0]}"
-                else:
-                    module_name = f"{module}_{attr[0]}_{attr[1]}"
-                
+                module_name = f"{module}_{suffix}" if suffix else module
+
                 log_file = logdir / f"{module_name}_{self.name}.log"
                 
 
@@ -264,31 +266,32 @@ class ResultsAggregator:
         statuses = []
         module_statuses = []
 
-        for sample_name, sample in self.samples.items():
-            if sample_name != sample.name:
-                raise ValueError(
-                    "Sample class name inconsistency.\n"
-                    f" - Sample class sample.name: {sample.name}\n"
-                    f" - Sample dictionary sample_name: {sample_name}"
-                )
+        failures = []
 
+        for sample_name, sample in self.samples.items():
             for module_name, module in sample.modules.items():
+
                 if module.ignore:
                     continue
 
-                succeeded = module.success
-                statuses.append(succeeded)
-                if not succeeded:
-                    module_statuses.append({
+                if not module.success:
+                    failures.append({
                         "sample": sample_name,
-                        "module": {
-                            "name": module_name,
-                            "status": "Failed",
-                        },
+                        "module": module_name,
+                        "status": "FAILED"
                     })
 
                     module.show_log(verbosity)
 
+        if failures:
+            print("\nFailed modules:")
+
+            for failure in failures:
+                print(
+                    f"{failure['sample']:<25}"
+                    f"{failure['module']:<25}"
+                    f"{failure['status']}"
+                )
 
         module_status_file = outdir / "module_status.tsv"
         pd.DataFrame(module_statuses).to_csv(
@@ -297,13 +300,6 @@ class ResultsAggregator:
             index=False,
         )
 
-        if not all(statuses):
-            logger.warning("The following samples showed module failures:")
-            for status_info in module_statuses:
-                module = status_info["module"]
-                print(f"{status_info['sample']} - {module['name']}: {module['status']}")
-        else:
-            logger.info("All modules for all samples was executed successfully!")
 
     def generate_long_results(self) -> pd.DataFrame:
         """
