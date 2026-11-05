@@ -35,3 +35,6 @@ kleborate:
 
 mlst:
     assembler: shovill  
+
+rmlst:
+    assembler: shovill
