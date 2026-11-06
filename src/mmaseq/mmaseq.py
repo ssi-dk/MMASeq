@@ -146,8 +146,8 @@ def parse_mmaseq():
         default=0,
         help=(
             "Adjust the verbosity (Default: %(default)s); "
-            "0: Minimal messages, 1: Debug messages, "
-            "2: Trace messages (development only)"
+            "0: Minimal messages, 1: Debug messages and log files if modules fails, "
+            "2: Trace messages (appropriate for development)"
         )
     )
 
@@ -579,6 +579,9 @@ def mmaseq(args):
             sample.show_failed(verbosity)
 
         print("#####################################")
+
+        if verbosity == 0:
+            logger.info("For more details rerun with `--verbosity 1`")
 
         sys.exit(1)
 
