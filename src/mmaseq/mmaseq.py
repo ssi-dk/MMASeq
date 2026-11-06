@@ -146,8 +146,8 @@ def parse_mmaseq():
         default=0,
         help=(
             "Adjust the verbosity (Default: %(default)s); "
-            "0: Minimal messages, 1: Debug messages, "
-            "2: Trace messages (development only)"
+            "0: Minimal messages, 1: Debug messages and log files if modules fails, "
+            "2: Trace messages (appropriate for development)"
         )
     )
 
@@ -280,6 +280,7 @@ def create_config(samplesheet_file,
                   force,
                   deploy_dir,
                   species_configs,
+                  logdir,
                   verbosity
                   ):
 
@@ -290,6 +291,7 @@ def create_config(samplesheet_file,
                   f"force = {force}\n"
                   f"deploy_dir = {deploy_dir}\n"
                   f"species_configs = {species_configs}\n"
+                  f"logdir = {logdir}\n"
                   f"verbosity: {verbosity}"
                   ")"))
 
@@ -317,6 +319,7 @@ def create_config(samplesheet_file,
         "species_configs": str(species_configs),
         "ignore_assemblies": ignore_assemblies,
         "outdir": str(outdir),
+        "logdir": str(logdir),
         "verbosity": int(verbosity)
     }
 
@@ -470,8 +473,10 @@ def mmaseq(args):
     longtable = args.longtable
     ignore_assemblies = args.ignore_assemblies
     latency_wait = args.latency_wait
+    verbosity = args.verbosity
 
     # Resolve other objects
+    logdir = outdir / "Logs"
     conda_dir = (deploy_dir / "conda").resolve()
     logger.trace((f"User arguments and deduced variables:\n - "
                   f"samplesheet_file: {samplesheet_file}\n - "
@@ -510,16 +515,23 @@ def mmaseq(args):
         logger.info("Species configurations folder successfully detected.")
 
     logger.debug("Creating pipeline configuration file")
-    config_file = create_config(samplesheet_file, 
-                           outdir,
-                           ignore_assemblies,
-                           force,
-                           deploy_dir,
-                           species_configs,
-                           args.verbosity
+    config_file = create_config(samplesheet_file = samplesheet_file, 
+                           outdir = outdir,
+                           ignore_assemblies = ignore_assemblies,
+                           force = force,
+                           deploy_dir = deploy_dir,
+                           species_configs = species_configs,
+                           logdir = logdir,     
+                           verbosity = verbosity
                            )
 
-    samples = import_dataset(samplesheet_file, species_configs, outdir, ignore_assemblies)
+    samples = import_dataset(
+        samplesheet_file = samplesheet_file,
+        config_dir = species_configs,
+        outpath = outdir,
+        ignore_assemblies = ignore_assemblies,
+        logdir = logdir
+    )
 
     if ignore_assemblies or force:
         logger.info("Assemblies in samplesheet will not replace "
@@ -545,7 +557,6 @@ def mmaseq(args):
     run_status = execute_snakemake(command)
 
     results_aggregator = ResultsAggregator(samples)
-    results_aggregator.module_statuses(outdir)
 
     # Created before checking the Snakemake exit status, so the results of the
     # modules that succeeded are still collected when others failed
@@ -558,6 +569,20 @@ def mmaseq(args):
 
     if run_status != 0:
         logger.error("Something went wrong while executing snakemake.")
+
+        print("\n#####################################")
+        logger.info("Creating module status report.")
+        logger.debug(f"Including logs.")
+
+        for smpl in samples:
+            sample = samples.get(smpl)
+            sample.show_failed(verbosity)
+
+        print("#####################################")
+
+        if verbosity == 0:
+            logger.info("For more details rerun with `--verbosity 1`")
+
         sys.exit(1)
 
 

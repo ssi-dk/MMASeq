@@ -3,9 +3,6 @@ kmeraligner_wrangler:
     database: ecoligenes
     reads: True
 
-shovill:
-    ignore: True
-
 assembly_minimap2:
     options: -ax asm5 --cs
     database: Cdiff_Toxins
@@ -18,7 +15,7 @@ cdiff_repeat_identifier:
     assembler: spades
 
 amrfinder:
-    assembler: [skesa, spades]
+    assembler: spades
     options: ""
 
 samtools:
@@ -84,6 +81,8 @@ spatyper:
 # seqsero2: # MacOS
 #    assembler: spades
 
+rmlst:
+  assembler: spades
 
 sistr:
   assembler: spades
