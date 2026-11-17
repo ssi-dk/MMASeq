@@ -363,7 +363,7 @@ class ResultsAggregator:
                         sample_long["Sample"] = sample_name
                     else:
                         sample_long = self.unpivot_results(
-                            sample_name, module_name, file, sample_results
+                            sample_name, module, file, sample_results
                         )
 
                     long_results.append(sample_long)

@@ -123,7 +123,7 @@ jobs:
           fi
     
           # Run tests
-          mmadeploy --deploy_dir ~/test --test --verbosity 2
+          mmadeploy --deploy_dir ~/test --test --verbosity 2 --longtable
 
       - name: Cleanup installation
         shell: bash -l {0}
